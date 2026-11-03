@@ -1,4 +1,6 @@
-import { PasskeyLoginRequestedError, UserAlreadyAuthorizedError } from '../../../lib/gramjs/errors';
+import {
+  PasskeyLoginRequestedError, PasswordLoginRequestedError, UserAlreadyAuthorizedError,
+} from '../../../lib/gramjs/errors';
 
 import type {
   ApiPasskeyOption,
@@ -62,11 +64,33 @@ export function onRequestPassword(hint?: string, noReset?: boolean) {
   });
 }
 
-export function onRequestRegistration() {
-  sendApiUpdate(buildAuthStateUpdate('authorizationStateWaitRegistration'));
+export function onRequestLoginPassword() {
+  sendApiUpdate(buildAuthStateUpdate('authorizationStateWaitLoginPassword'));
 
-  return new Promise<[string, string?]>((resolve) => {
+  return new Promise<string>((resolve, reject) => {
     authController.resolve = resolve;
+    authController.reject = reject;
+  });
+}
+
+export function onRequestSignupPassword() {
+  sendApiUpdate(buildAuthStateUpdate('authorizationStateWaitSignupPassword'));
+
+  return new Promise<string>((resolve, reject) => {
+    authController.resolve = resolve;
+    authController.reject = reject;
+  });
+}
+
+export function onRequestRegistration(isPasswordSignup?: boolean) {
+  sendApiUpdate({
+    ...buildAuthStateUpdate('authorizationStateWaitRegistration'),
+    isPasswordSignup,
+  });
+
+  return new Promise<[string, string?]>((resolve, reject) => {
+    authController.resolve = resolve;
+    authController.reject = reject;
   });
 }
 
@@ -121,7 +145,12 @@ export function buildAuthStateUpdate(authorizationState: ApiUpdateAuthorizationS
   };
 }
 
-export function provideAuthPhoneNumber(phoneNumber: string) {
+export function provideAuthPhoneNumber(phoneNumber: string, isPasswordLogin?: boolean) {
+  if (isPasswordLogin) {
+    authController.reject?.(new PasswordLoginRequestedError(phoneNumber));
+    return;
+  }
+
   if (!authController.resolve) {
     return;
   }
@@ -161,6 +190,14 @@ export function restartAuth() {
   }
 
   authController.reject(new Error('RESTART_AUTH'));
+}
+
+export function restartAuthWithCode() {
+  if (!authController.reject) {
+    return;
+  }
+
+  authController.reject(new Error('RESTART_AUTH_WITH_CODE'));
 }
 
 export function restartAuthWithQr() {

@@ -39,6 +39,12 @@ const ERROR_KEYS: Record<string, RegularLangKey> = {
   CODE_INVALID: 'ErrorEmailCodeInvalid',
   PASSWORD_MISSING: 'ErrorPasswordMissing',
   PASSKEY_CREDENTIAL_NOT_FOUND: 'ErrorPasskeyUnknown',
+  PASSWORD_LOGIN_NOT_SET: 'ErrorPasswordLoginNotSet',
+  PASSWORD_LOGIN_DISABLED: 'ErrorPasswordLoginUnavailable',
+  SIGN_UP_DISABLED: 'ErrorSignUpClosed',
+  PHONE_NUMBER_OCCUPIED: 'ErrorSignupPasswordOccupied',
+  AUTHORIZATIONS_TOO_MUCH: 'ErrorDeviceLimitReached',
+  DEVICE_ID_REQUIRED: 'ErrorDeviceIdRequired',
 };
 
 function resolveErrorKey(errorMessage: string) {

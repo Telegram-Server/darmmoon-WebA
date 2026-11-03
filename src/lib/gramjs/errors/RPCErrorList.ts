@@ -126,6 +126,16 @@ export class PasskeyLoginRequestedError extends Error {
   }
 }
 
+export class PasswordLoginRequestedError extends Error {
+  public phoneNumber: string;
+
+  constructor(phoneNumber: string) {
+    super('Password login requested');
+    this.message = 'RESTART_AUTH_WITH_PASSWORD';
+    this.phoneNumber = phoneNumber;
+  }
+}
+
 export class UserAlreadyAuthorizedError extends Error {
   public userId: string;
   constructor(userId: string) {

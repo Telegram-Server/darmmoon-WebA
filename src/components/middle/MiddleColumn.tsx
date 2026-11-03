@@ -4,6 +4,7 @@ import { getActions, withGlobal } from '../../global';
 
 import type { ApiChat, ApiChatBannedRights, ApiInputDraftReplyInfo, ApiTopic } from '../../api/types';
 import type { ActiveEmojiInteraction, AnimationLevel, MessageListType, ThemeKey, ThreadId } from '../../types';
+import type { RegularLangKey } from '../../types/language';
 import type { PaneState } from './hooks/useHeaderPane';
 import { MAIN_THREAD_ID } from '../../api/types';
 
@@ -49,6 +50,8 @@ import {
   selectPeerPaidMessagesStars,
   selectPinnedIds,
   selectTabState,
+  selectTelesrvCanJoin,
+  selectTelesrvSendErrorKey,
   selectTheme,
   selectThemeValues,
   selectTopic,
@@ -167,6 +170,7 @@ type StateProps = {
   isAccountFrozen?: boolean;
   freezeAppealChat?: ApiChat;
   shouldBlockSendInMonoforum?: boolean;
+  telesrvRestrictionKey?: RegularLangKey;
   isUiReady?: boolean;
 };
 
@@ -243,6 +247,7 @@ function MiddleColumn({
   isAccountFrozen,
   freezeAppealChat,
   shouldBlockSendInMonoforum,
+  telesrvRestrictionKey,
   isUiReady,
 }: OwnProps & StateProps) {
   const {
@@ -510,6 +515,7 @@ function MiddleColumn({
   );
 
   const composerRestrictionMessage = messageSendingRestrictionReason
+    || (telesrvRestrictionKey ? lang(telesrvRestrictionKey) : undefined)
     || forumComposerPlaceholder
     || (shouldBlockSendInMonoforum ? lang('MonoforumComposerPlaceholder') : undefined)
     || (isContactRequirePremium ? <PremiumRequiredPlaceholder userId={chatId!} /> : undefined)
@@ -794,12 +800,16 @@ export default memo(withGlobal<OwnProps>(
     const isPinnedMessageList = messageListType === 'pinned';
     const isMainThread = messageListType === 'thread' && threadId === MAIN_THREAD_ID;
     const isChannel = Boolean(chat && isChatChannel(chat));
+    const isJoinRestricted = Boolean(chat?.isNotJoined && !chat.isMonoforum && !selectTelesrvCanJoin(global, chat));
     const canSubscribe = Boolean(
       chat && (isMainThread || chat.isForum) && (isChannel || isChatSuperGroup(chat)) && chat.isNotJoined
-      && !chat.joinRequests && !chat.isMonoforum,
+      && !chat.joinRequests && !chat.isMonoforum && !isJoinRestricted,
     );
-    const shouldJoinToSend = Boolean(chat?.isNotJoined && chat.isJoinToSend);
-    const shouldSendJoinRequest = Boolean(chat?.isNotJoined && chat.isJoinRequest);
+    const isJoinToSend = Boolean(chat?.isNotJoined && chat.isJoinToSend);
+    const shouldJoinToSend = isJoinToSend && !isJoinRestricted;
+    const shouldSendJoinRequest = Boolean(chat?.isNotJoined && chat.isJoinRequest) && !isJoinRestricted;
+    const telesrvRestrictionKey = isJoinRestricted ? 'TelesrvJoinRestricted'
+      : !isChannel ? selectTelesrvSendErrorKey(global, chatId) : undefined;
     const isUserBlocked = isPrivate ? selectIsUserBlocked(global, chatId) : false;
     const canRestartBot = Boolean(bot && isUserBlocked);
     const canStartBot = !canRestartBot && isBotNotStarted;
@@ -839,7 +849,7 @@ export default memo(withGlobal<OwnProps>(
     const canPostFooter = !isPinnedMessageList
       && (!chat || canPost)
       && !isBotNotStarted
-      && !(shouldJoinToSend && chat?.isNotJoined)
+      && !isJoinToSend
       && !shouldBlockSendInForum
       && !shouldBlockSendInMonoforum
       && !isSavedDialog
@@ -889,6 +899,7 @@ export default memo(withGlobal<OwnProps>(
       isAccountFrozen,
       freezeAppealChat,
       shouldBlockSendInMonoforum,
+      telesrvRestrictionKey,
     } as Complete<StateProps>;
   },
 )(MiddleColumn));

@@ -80,6 +80,7 @@ type TelegramClientParams = {
   shouldAllowHttpTransport: boolean;
   shouldForceHttpTransport: boolean;
   shouldDebugExportedSenders: boolean;
+  deviceId?: string;
 };
 
 type TimeoutId = number;
@@ -114,6 +115,12 @@ const PING_WAKE_UP_WARNING_TIMEOUT = 1000; // 1 sec
 
 const PING_DISCONNECT_DELAY = 60000; // 1 min
 
+const MINUTE_SECONDS = 60;
+const DAY_SECONDS = 24 * 60 * MINUTE_SECONDS;
+const TIMEZONE_OFFSET_MIN = -12 * 60 * MINUTE_SECONDS;
+const TIMEZONE_OFFSET_MAX = 14 * 60 * MINUTE_SECONDS;
+const TIMEZONE_OFFSET_STEP = 15 * MINUTE_SECONDS;
+
 // All types, sorted by size
 const sizeTypes = ['u', 'v', 'w', 'y', 'd', 'x', 'c', 'm', 'b', 'a', 's', 'f', 'i', 'j'] as const;
 export type SizeType = typeof sizeTypes[number];
@@ -121,6 +128,30 @@ const sizeTypeRanks: Record<SizeType, number> = sizeTypes.reduce((acc, sizeType,
   acc[sizeType] = index;
   return acc;
 }, {} as Record<SizeType, number>);
+
+function buildInitConnectionParams(deviceId?: string) {
+  const values = [new Api.JsonObjectValue({
+    key: 'tz_offset',
+    value: new Api.JsonNumber({ value: getTimezoneOffset() }),
+  })];
+  if (deviceId) {
+    values.push(new Api.JsonObjectValue({
+      key: 'device_id',
+      value: new Api.JsonString({ value: deviceId }),
+    }));
+  }
+
+  return new Api.JsonObject({ value: values });
+}
+
+// Sliced to the -12h..+14h range and rounded to 15 minutes, as native clients do
+function getTimezoneOffset() {
+  let offset = -new Date().getTimezoneOffset() * MINUTE_SECONDS;
+  while (offset < TIMEZONE_OFFSET_MIN) offset += DAY_SECONDS;
+  while (offset > TIMEZONE_OFFSET_MAX) offset -= DAY_SECONDS;
+
+  return Math.sign(offset) * Math.round(Math.abs(offset) / TIMEZONE_OFFSET_STEP) * TIMEZONE_OFFSET_STEP;
+}
 
 class TelegramClient {
   static DEFAULT_OPTIONS: Partial<TelegramClientParams> = {
@@ -282,6 +313,7 @@ class TelegramClient {
           systemLangCode: args.systemLangCode,
           query: x,
           proxy: undefined, // no proxies yet.
+          params: buildInitConnectionParams(args.deviceId),
         }),
       });
     };
@@ -387,9 +419,7 @@ class TelegramClient {
     if (!this.session.serverAddress || (this.session.serverAddress.includes(':') !== this._useIPV6)) {
       const DC = getDC(this.defaultDcId);
       // TODO Fill IP addresses for when `this._useIPV6` is used
-      this.session.setDC(
-        this.defaultDcId, DC.ipAddress, this._args.useWSS ? 443 : 80, this._args.isTestServerRequested,
-      );
+      this.session.setDC(this.defaultDcId, DC.ipAddress, DC.port, this._args.isTestServerRequested);
     }
 
     const { dcId } = this.session;

@@ -34,7 +34,7 @@ import { updateTabState } from '../../reducers/tabs';
 import {
   selectChat, selectIsCurrentUserFrozen,
   selectLanguageCode,
-  selectTabState, selectUser,
+  selectTabState, selectTelesrvAllows, selectUser,
 } from '../../selectors';
 import { selectSharedSettings } from '../../selectors/sharedState';
 
@@ -877,8 +877,13 @@ addActionHandler('loadDefaultHistoryTtl', async (global): Promise<void> => {
   setGlobal(global);
 });
 
-addActionHandler('setDefaultHistoryTtl', async (global, _actions, payload): Promise<void> => {
-  const { period } = payload;
+addActionHandler('setDefaultHistoryTtl', async (global, actions, payload): Promise<void> => {
+  const { period, tabId = getCurrentTabId() } = payload;
+  if (period && !selectTelesrvAllows(global, 'delete')) {
+    actions.showNotification({ message: { key: 'TelesrvPermissionDenied' }, tabId });
+    return;
+  }
+
   const result = await callApi('setDefaultHistoryTtl', { period });
   if (!result) return;
 

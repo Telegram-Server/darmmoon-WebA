@@ -13,10 +13,12 @@ import useHistoryBack from '../../hooks/useHistoryBack';
 
 import Transition from '../ui/Transition';
 import AuthCode from './AuthCode.async';
+import AuthLoginPassword from './AuthLoginPassword.async';
 import AuthPassword from './AuthPassword.async';
 import AuthPhoneNumber from './AuthPhoneNumber';
 import AuthQrCode from './AuthQrCode';
 import AuthRegister from './AuthRegister.async';
+import AuthSignupPassword from './AuthSignupPassword.async';
 
 import './Auth.scss';
 
@@ -65,6 +67,10 @@ const Auth = ({
         return <AuthPhoneNumber />;
       case 'authorizationStateWaitQrCode':
         return <AuthQrCode />;
+      case 'authorizationStateWaitLoginPassword':
+        return <AuthLoginPassword />;
+      case 'authorizationStateWaitSignupPassword':
+        return <AuthSignupPassword />;
       default:
         return isMobile ? <AuthPhoneNumber /> : <AuthQrCode />;
     }
@@ -82,6 +88,10 @@ const Auth = ({
         return 3;
       case 'authorizationStateWaitQrCode':
         return 4;
+      case 'authorizationStateWaitLoginPassword':
+        return 5;
+      case 'authorizationStateWaitSignupPassword':
+        return 6;
       default:
         return isMobile ? 3 : 4;
     }

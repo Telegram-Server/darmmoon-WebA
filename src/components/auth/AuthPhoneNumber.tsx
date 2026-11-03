@@ -36,6 +36,7 @@ type StateProps = {
   language?: string;
   phoneCodeList: ApiCountryCode[];
   isTestServer?: boolean;
+  isPasswordLoginAvailable?: boolean;
 };
 
 const MIN_NUMBER_LENGTH = 7;
@@ -48,6 +49,7 @@ const AuthPhoneNumber = ({
   phoneCodeList,
   language,
   isTestServer,
+  isPasswordLoginAvailable,
 }: StateProps) => {
   const {
     setAuthPhoneNumber,
@@ -58,6 +60,8 @@ const AuthPhoneNumber = ({
     goToAuthQrCode,
     setSharedSettingOption,
     loginWithPasskey,
+    loadAppConfig,
+    toggleAuthPasswordLogin,
   } = getActions();
 
   const {
@@ -69,6 +73,7 @@ const AuthPhoneNumber = ({
     rememberMe,
     isLoadingQrCode,
     passkeyOption,
+    isPasswordLogin: isPasswordLoginSelected,
   } = auth;
 
   const lang = useLang();
@@ -76,6 +81,7 @@ const AuthPhoneNumber = ({
   const suggestedLanguage = getSuggestedLanguage();
 
   const isConnected = connectionState === 'connectionStateReady';
+  const isPasswordLogin = isPasswordLoginSelected && isPasswordLoginAvailable;
   const continueText = useLangString('AuthContinueOnThisLanguage', suggestedLanguage);
   const [country, setCountry] = useState<ApiCountryCode | undefined>();
   const [phoneNumber, setPhoneNumber] = useState<string | undefined>();
@@ -114,6 +120,13 @@ const AuthPhoneNumber = ({
       loadCountryList({ langCode: lang.code });
     }
   }, [isConnected, lang.code]);
+
+  // The app config tells whether the server offers password login
+  useEffect(() => {
+    if (isConnected) {
+      loadAppConfig();
+    }
+  }, [isConnected]);
 
   useEffect(() => {
     if (nearestCountry && phoneCodeList && !country && !isTouched) {
@@ -240,6 +253,11 @@ const AuthPhoneNumber = ({
     loginWithPasskey();
   });
 
+  const handleTogglePasswordLogin = useLastCallback(() => {
+    toggleAuthPasswordLogin();
+    inputRef.current?.focus();
+  });
+
   const isAuthReady = state === 'authorizationStateWaitPhoneNumber';
 
   return (
@@ -257,7 +275,7 @@ const AuthPhoneNumber = ({
       <div className="auth-form">
         <div id="logo" />
         <h1>{lang('AuthTitle')}</h1>
-        <p className="note">{lang('StartText')}</p>
+        <p className="note">{lang(isPasswordLogin ? 'AuthPasswordLoginDesc' : 'StartText')}</p>
         <form className="form" action="" onSubmit={handleSubmit}>
           <CountryCodeInput
             id="sign-in-phone-code"
@@ -306,6 +324,11 @@ const AuthPhoneNumber = ({
               {lang('LoginQRLogin')}
             </Button>
           )}
+          {isAuthReady && isPasswordLoginAvailable && (
+            <Button className="auth-button" isText onClick={handleTogglePasswordLogin}>
+              {lang(isPasswordLogin ? 'AuthLoginWithCode' : 'AuthLoginWithPassword')}
+            </Button>
+          )}
           {passkeyOption && (
             <Button className="auth-button" isText onClick={handleLoginWithPasskey}>
               {lang('LoginPasskey')}
@@ -333,6 +356,7 @@ export default memo(withGlobal(
       sharedState: { settings: { language } },
       countryList: { phoneCodes: phoneCodeList },
       config,
+      appConfig,
       auth,
       connectionState,
     } = global;
@@ -343,6 +367,7 @@ export default memo(withGlobal(
       language,
       phoneCodeList,
       isTestServer: config?.isTestServer,
+      isPasswordLoginAvailable: appConfig.isPasswordLoginAvailable,
     };
   },
 )(AuthPhoneNumber));

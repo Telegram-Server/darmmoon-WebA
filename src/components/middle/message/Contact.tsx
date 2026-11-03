@@ -3,7 +3,7 @@ import { getActions, withGlobal } from '../../../global';
 import type { ApiContact, ApiCountryCode, ApiUser } from '../../../api/types';
 
 import { getCanAddContact, getUserFullName } from '../../../global/helpers';
-import { selectUser } from '../../../global/selectors';
+import { selectTelesrvAllows, selectUser } from '../../../global/selectors';
 import { copyTextToClipboard } from '../../../util/clipboard';
 import { formatPhoneNumberWithCode } from '../../../util/phoneNumber';
 
@@ -24,12 +24,13 @@ type OwnProps = {
 type StateProps = {
   user?: ApiUser;
   phoneCodeList: ApiCountryCode[];
+  isAddContactAllowed: boolean;
 };
 
 const UNREGISTERED_CONTACT_ID = '0';
 
 const Contact = ({
-  contact, user, phoneCodeList, noUserColors,
+  contact, user, phoneCodeList, isAddContactAllowed, noUserColors,
 }: OwnProps & StateProps) => {
   const {
     openChat, openAddContactDialog, showNotification, openChatWithInfo,
@@ -38,7 +39,7 @@ const Contact = ({
 
   const { phoneNumber, userId } = contact;
   const isRegistered = userId !== UNREGISTERED_CONTACT_ID;
-  const canAddContact = isRegistered && user && getCanAddContact(user);
+  const canAddContact = isRegistered && user && getCanAddContact(user) && isAddContactAllowed;
 
   const handleOpenChat = useLastCallback(() => {
     openChat({ id: userId });
@@ -138,5 +139,6 @@ export default withGlobal<OwnProps>((global, { contact }): Complete<StateProps> 
   return {
     user,
     phoneCodeList,
+    isAddContactAllowed: selectTelesrvAllows(global, 'add_contact'),
   };
 })(Contact);

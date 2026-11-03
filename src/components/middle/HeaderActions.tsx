@@ -29,6 +29,9 @@ import {
   selectLanguageCode,
   selectRequestedChatTranslationLanguage,
   selectRequestedChatTranslationTone,
+  selectTelesrvAllows,
+  selectTelesrvCanDeleteChat,
+  selectTelesrvCanJoin,
   selectTranslationLanguage,
   selectUserFullInfo,
 } from '../../global/selectors';
@@ -461,14 +464,17 @@ export default memo(withGlobal<OwnProps>(
 
     const isSavedDialog = getIsSavedDialog(chatId, threadId, global.currentUserId);
 
-    const canSubscribe = Boolean(
+    const isNotJoinedChannel = Boolean(
       (isMainThread || chat.isForum) && (isChannel || isSuperGroup) && chat.isNotJoined && !chat.isMonoforum,
     );
+    const canSubscribe = isNotJoinedChannel && selectTelesrvCanJoin(global, chat);
     const canSearch = isMainThread || isDiscussionThread;
     const canCall = ARE_CALLS_SUPPORTED && isUserId(chat.id) && !isChatWithSelf && !bot && !chat.isSupport
       && !isAnonymousForwardsChat(chat.id);
-    const canMute = isMainThread && !isChatWithSelf && !canSubscribe;
-    const canLeave = isSavedDialog || (isMainThread && !canSubscribe);
+    const canMute = isMainThread && !isChatWithSelf && !isNotJoinedChannel;
+    const canLeave = isSavedDialog
+      ? selectTelesrvAllows(global, 'clear_history')
+      : isMainThread && !isNotJoinedChannel && selectTelesrvCanDeleteChat(global, chatId);
     const canEnterVoiceChat = ARE_CALLS_SUPPORTED && isMainThread && chat.isCallActive;
     const canCreateVoiceChat = ARE_CALLS_SUPPORTED && isMainThread && !chat.isCallActive
       && getHasAdminRight(chat, 'manageCall') && !chat.isMonoforum;

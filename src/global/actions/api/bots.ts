@@ -72,6 +72,7 @@ import {
   selectSendAs,
   selectSender,
   selectTabState,
+  selectTelesrvSendErrorKey,
   selectUser,
   selectUserFullInfo,
   selectWebApp,
@@ -308,6 +309,12 @@ addActionHandler('sendBotCommand', (global, actions, payload): ActionReturnType 
     return;
   }
 
+  const sendErrorKey = selectTelesrvSendErrorKey(global, chat.id);
+  if (sendErrorKey) {
+    actions.showNotification({ message: { key: sendErrorKey }, tabId });
+    return;
+  }
+
   const { threadId } = currentMessageList;
   const draftReplyInfo = selectDraft(global, chat.id, threadId)?.replyInfo;
   actions.resetDraftReplyInfo({ tabId });
@@ -360,6 +367,12 @@ addActionHandler('restartBot', async (global, actions, payload): Promise<void> =
   const chat = selectCurrentChat(global, tabId);
   const bot = currentUserId && selectBot(global, chatId);
   if (!currentUserId || !chat || !bot) {
+    return;
+  }
+
+  const sendErrorKey = selectTelesrvSendErrorKey(global, chat.id);
+  if (sendErrorKey) {
+    actions.showNotification({ message: { key: sendErrorKey }, tabId });
     return;
   }
 
@@ -499,6 +512,12 @@ addActionHandler('sendInlineBotResult', async (global, actions, payload): Promis
     return;
   }
 
+  const sendErrorKey = selectTelesrvSendErrorKey(global, chatId);
+  if (sendErrorKey) {
+    actions.showNotification({ message: { key: sendErrorKey }, tabId });
+    return;
+  }
+
   const chat = selectChat(global, chatId)!;
   const draftReplyInfo = selectDraft(global, chatId, threadId)?.replyInfo;
   if (draftReplyInfo?.type === 'ephemeral') return;
@@ -582,12 +601,18 @@ addActionHandler('resetAllInlineBots', (global, actions, payload): ActionReturnT
 
 addActionHandler('startBot', async (global, actions, payload): Promise<void> => {
   const {
-    botId, chatId, param,
+    botId, chatId, param, tabId = getCurrentTabId(),
   } = payload;
 
   const bot = selectUser(global, botId);
   const chat = chatId ? selectChat(global, chatId) : undefined;
   if (!bot || (chatId && !chat)) {
+    return;
+  }
+
+  const sendErrorKey = selectTelesrvSendErrorKey(global, chatId || botId);
+  if (sendErrorKey) {
+    actions.showNotification({ message: { key: sendErrorKey }, tabId });
     return;
   }
 
@@ -1140,8 +1165,14 @@ addActionHandler('prolongWebView', async (global, actions, payload): Promise<voi
 
 addActionHandler('sendWebViewData', (global, actions, payload): ActionReturnType => {
   const {
-    bot, data, buttonText,
+    bot, data, buttonText, tabId = getCurrentTabId(),
   } = payload;
+
+  const sendErrorKey = selectTelesrvSendErrorKey(global, bot.id);
+  if (sendErrorKey) {
+    actions.showNotification({ message: { key: sendErrorKey }, tabId });
+    return;
+  }
 
   callApi('sendWebViewData', {
     bot,

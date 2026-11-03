@@ -208,7 +208,7 @@ function buildButtonUrl(value: string): string | undefined {
     if (protocol === 'http:' || protocol === 'https:') {
       return hostname.includes('.') || hostname.startsWith('[') ? url.href : undefined;
     }
-    if (protocol === 'tg:' || protocol === 'ton:') {
+    if (protocol === 'tg:' || protocol === 'dm:' || protocol === 'ton:') {
       return /^[a-z\d_-]+$/i.test(hostname) && !username && !password && !port ? url.href : undefined;
     }
     return undefined;

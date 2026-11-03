@@ -87,6 +87,7 @@ import { selectPeer, selectPeerPaidMessagesStars } from './peers';
 import { selectPeerStory } from './stories';
 import { selectCustomEmoji, selectIsStickerFavorite } from './symbols';
 import { selectTabState } from './tabs';
+import { selectTelesrvAllows } from './telesrv';
 import {
   selectEditingId,
   selectEditingScheduledId,
@@ -679,7 +680,9 @@ export function selectAllowedMessageActionsSlow<T extends GlobalState>(
   const canNotDeleteBoostMessage = isBoostMessage && isOwn
     && !getHasAdminRight(chat, 'deleteMessages');
 
-  const canDelete = (!isLocal || isFailed) && !isServiceNotification && !canNotDeleteBoostMessage && (
+  // Sending and failed messages stay deletable
+  const canDelete = (!isLocal || isFailed) && !isServiceNotification && !canNotDeleteBoostMessage
+    && (isLocal || selectTelesrvAllows(global, 'delete')) && (
     isPrivate
     || isOwn
     || isBasicGroup
@@ -697,7 +700,8 @@ export function selectAllowedMessageActionsSlow<T extends GlobalState>(
 
   const hasMessageEditRight = isOwn || (isChannel && getHasAdminRight(chat, 'editMessages'));
 
-  const canEdit = !isLocal && !isAction && isMessageEditable && hasMessageEditRight;
+  const canEdit = !isLocal && !isAction && isMessageEditable && hasMessageEditRight
+    && selectTelesrvAllows(global, 'edit');
 
   const hasSticker = Boolean(message.content.sticker);
   const hasFavoriteSticker = hasSticker && selectIsStickerFavorite(global, message.content.sticker!);

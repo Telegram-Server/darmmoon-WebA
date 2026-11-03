@@ -3,7 +3,7 @@ import { onFullyIdle } from '../../lib/teact/heavyAnimation';
 import { DEBUG } from '../../config';
 import convertPunycode from '../../lib/punycode';
 
-const PROTOCOL_WHITELIST = new Set(['http:', 'https:', 'tg:', 'ton:', 'mailto:', 'tel:']);
+const PROTOCOL_WHITELIST = new Set(['http:', 'https:', 'tg:', 'dm:', 'ton:', 'mailto:', 'tel:']);
 const FALLBACK_PREFIX = 'https://';
 const PROTOCOL_PREFIX_PATTERN = /^[a-z][a-z\d+.-]*:/i;
 const VALID_URI_ESCAPE_SEQUENCE_PATTERN = /(%[\da-f]{2})/gi;

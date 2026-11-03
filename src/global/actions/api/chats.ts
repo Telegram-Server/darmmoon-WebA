@@ -28,6 +28,7 @@ import {
   RE_TG_LINK,
   SAVED_FOLDER_ID,
   SERVICE_NOTIFICATIONS_USER_ID,
+  TME_HOSTNAME,
   TME_WEB_DOMAINS,
   TMP_CHAT_ID,
   TOP_CHAT_MESSAGES_PRELOAD_LIMIT,
@@ -132,6 +133,12 @@ import {
   selectStickerSet,
   selectSupportChat,
   selectTabState,
+  selectTelesrvAllows,
+  selectTelesrvCanCreate,
+  selectTelesrvCanDeleteChat,
+  selectTelesrvCanJoin,
+  selectTelesrvCanJoinByType,
+  selectTelesrvCanLeave,
   selectTopic,
   selectTopics,
   selectTopicsInfo,
@@ -804,6 +811,11 @@ addActionHandler('createChannel', async (global, actions, payload): Promise<void
   const isChannel = 'isChannel' in payload ? payload.isChannel : undefined;
   const isSuperGroup = 'isSuperGroup' in payload ? payload.isSuperGroup : undefined;
 
+  if (!selectTelesrvCanCreate(global, Boolean(isChannel))) {
+    actions.showNotification({ message: { key: 'TelesrvPermissionDenied' }, tabId });
+    return;
+  }
+
   const users = memberIds?.map((id) => selectUser(global, id))
     .filter(Boolean);
 
@@ -886,6 +898,11 @@ addActionHandler('joinChannel', async (global, actions, payload): Promise<void> 
     return;
   }
 
+  if (!selectTelesrvCanJoin(global, chat)) {
+    actions.showNotification({ message: { key: 'TelesrvJoinRestricted' }, tabId });
+    return;
+  }
+
   const { id: channelId, accessHash } = chat;
 
   if (!(channelId && accessHash)) {
@@ -937,6 +954,11 @@ addActionHandler('deleteChatUser', (global, actions, payload): ActionReturnType 
     return;
   }
 
+  if (userId === global.currentUserId && !selectTelesrvCanLeave(global, chatId)) {
+    actions.showNotification({ message: { key: 'TelesrvPermissionDenied' }, tabId });
+    return;
+  }
+
   global = leaveChat(global, chatId);
   setGlobal(global);
 
@@ -951,6 +973,11 @@ addActionHandler('deleteChat', (global, actions, payload): ActionReturnType => {
   const { chatId, tabId = getCurrentTabId() } = payload;
   const chat = selectChat(global, chatId);
   if (!chat) {
+    return;
+  }
+
+  if (!selectTelesrvCanDeleteChat(global, chatId)) {
+    actions.showNotification({ message: { key: 'TelesrvPermissionDenied' }, tabId });
     return;
   }
 
@@ -1021,6 +1048,11 @@ addActionHandler('leaveChannel', async (global, actions, payload): Promise<void>
     return;
   }
 
+  if (!selectTelesrvCanLeave(global, chatId)) {
+    actions.showNotification({ message: { key: 'TelesrvPermissionDenied' }, tabId });
+    return;
+  }
+
   const isModalOpen = await checkFutureCreatorAndOpenModal(chat, shouldSkipOwnershipCheck, tabId);
   if (isModalOpen) {
     return;
@@ -1036,6 +1068,11 @@ addActionHandler('leaveBasicGroup', async (global, actions, payload): Promise<vo
   const chat = selectChat(global, chatId);
   const currentUserId = global.currentUserId;
   if (!chat || !currentUserId) {
+    return;
+  }
+
+  if (!selectTelesrvCanLeave(global, chatId)) {
+    actions.showNotification({ message: { key: 'TelesrvPermissionDenied' }, tabId });
     return;
   }
 
@@ -1126,6 +1163,11 @@ addActionHandler('deleteChannel', (global, actions, payload): ActionReturnType =
     return;
   }
 
+  if (!selectTelesrvCanDeleteChat(global, chatId)) {
+    actions.showNotification({ message: { key: 'TelesrvPermissionDenied' }, tabId });
+    return;
+  }
+
   global = leaveChat(global, chatId);
   setGlobal(global);
 
@@ -1143,6 +1185,11 @@ addActionHandler('createGroupChat', async (global, actions, payload): Promise<vo
   const {
     title, memberIds, photo, tabId = getCurrentTabId(),
   } = payload;
+  if (!selectTelesrvCanCreate(global, false)) {
+    actions.showNotification({ message: { key: 'TelesrvPermissionDenied' }, tabId });
+    return;
+  }
+
   const users = (memberIds)
     .map((id) => selectUser(global, id))
     .filter(Boolean);
@@ -1747,7 +1794,7 @@ addActionHandler('openTelegramLink', async (global, actions, payload): Promise<v
     return;
   }
 
-  const hostname = TME_WEB_DOMAINS.has(uri.hostname) ? 't.me' : uri.hostname;
+  const hostname = TME_WEB_DOMAINS.has(uri.hostname) ? TME_HOSTNAME : uri.hostname;
   const hostParts = hostname.split('.');
   if (hostParts.length > 3) return;
 
@@ -1909,6 +1956,11 @@ addActionHandler('acceptChatInvite', async (global, actions, payload): Promise<v
   const {
     hash, isRequestNeeded, isBroadcast, tabId = getCurrentTabId(),
   } = payload;
+  if (!selectTelesrvCanJoinByType(global, Boolean(isBroadcast))) {
+    actions.showNotification({ message: { key: 'TelesrvJoinRestricted' }, tabId });
+    return;
+  }
+
   const theme = extractCurrentThemeParams();
   const result = await callApi('importChatInvite', { hash, theme });
 
@@ -2641,9 +2693,14 @@ addActionHandler('toggleIsProtected', (global, actions, payload): ActionReturnTy
 });
 
 addActionHandler('setChatHistoryTtl', (global, actions, payload): ActionReturnType => {
-  const { chatId, period } = payload;
+  const { chatId, period, tabId = getCurrentTabId() } = payload;
   const peer = selectPeer(global, chatId);
   if (!peer) return;
+
+  if (period && !selectTelesrvAllows(global, 'delete')) {
+    actions.showNotification({ message: { key: 'TelesrvPermissionDenied' }, tabId });
+    return;
+  }
 
   // The server responds with `updatePeerHistoryTtl`, which is applied by the updater
   void callApi('setHistoryTtl', { peer, period });
@@ -3096,6 +3153,11 @@ addActionHandler('joinChatlistInvite', async (global, actions, payload): Promise
   const peers = peerIds.map((peerId) => selectChat(global, peerId)).filter(Boolean);
   const currentNotJoinedCount = peers.filter((peer) => peer.isNotJoined).length;
 
+  if (peers.some((peer) => peer.isNotJoined && !selectTelesrvCanJoin(global, peer))) {
+    actions.showNotification({ message: { key: 'TelesrvJoinRestricted' }, tabId });
+    return;
+  }
+
   const existingFolder = 'folderId' in invite ? selectChatFolder(global, invite.folderId) : undefined;
   const folderTitle = ('title' in invite ? invite.title : existingFolder?.title)!;
 
@@ -3158,7 +3220,8 @@ addActionHandler('leaveChatlist', async (global, actions, payload): Promise<void
 
   const folder = selectChatFolder(global, folderId);
 
-  const peers = peerIds?.map((peerId) => selectChat(global, peerId)).filter(Boolean) || [];
+  const peers = peerIds?.map((peerId) => selectChat(global, peerId)).filter(Boolean)
+    .filter((peer) => selectTelesrvCanLeave(global, peer.id)) || [];
 
   const result = await callApi('leaveChatlist', { folderId, peers });
 

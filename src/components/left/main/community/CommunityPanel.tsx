@@ -2,7 +2,7 @@ import {
   beginHeavyAnimation,
   memo, useCallback, useEffect, useMemo, useRef, useState,
 } from '../../../../lib/teact/teact';
-import { getActions, withGlobal } from '../../../../global';
+import { getActions, getGlobal, withGlobal } from '../../../../global';
 
 import type { ApiChat, ApiChatFullInfo } from '../../../../api/types';
 import type { GlobalState } from '../../../../global/types';
@@ -15,6 +15,7 @@ import {
   selectChatFullInfo,
   selectChatLastMessage,
   selectCommunityPanelId,
+  selectTelesrvCanJoin,
 } from '../../../../global/selectors';
 import { IS_TOUCH_ENV } from '../../../../util/browser/windowEnvironment';
 import buildClassName from '../../../../util/buildClassName';
@@ -249,6 +250,11 @@ const CommunityPanel = ({
     // A bot chat is not joined, just opened
     if (isUserId(entry.peer.id)) {
       openChat({ id: entry.peer.id });
+      return;
+    }
+
+    if (!selectTelesrvCanJoin(getGlobal(), entry.peer)) {
+      showNotification({ message: { key: 'TelesrvJoinRestricted' } });
       return;
     }
 

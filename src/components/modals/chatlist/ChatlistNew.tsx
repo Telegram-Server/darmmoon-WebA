@@ -5,6 +5,7 @@ import { getActions, getGlobal } from '../../../global';
 
 import type { ApiChatlistInviteNew } from '../../../api/types';
 
+import { selectIsTelesrvJoinRestricted } from '../../../global/selectors';
 import buildClassName from '../../../util/buildClassName';
 
 import useLang from '../../../hooks/useLang';
@@ -24,7 +25,16 @@ const ChatlistNew = ({ invite }: OwnProps) => {
 
   const lang = useLang();
 
-  const [selectedPeerIds, setSelectedPeerIds] = useState<string[]>(invite.peerIds);
+  const restrictedIds = useMemo(() => {
+    const global = getGlobal();
+    return invite.peerIds.filter((id) => selectIsTelesrvJoinRestricted(global, id));
+  }, [invite.peerIds]);
+
+  const selectableIds = useMemo(() => {
+    return invite.peerIds.filter((id) => !restrictedIds.includes(id));
+  }, [invite.peerIds, restrictedIds]);
+
+  const [selectedPeerIds, setSelectedPeerIds] = useState<string[]>(selectableIds);
 
   const joinedIds = useMemo(() => {
     const chatsById = getGlobal().chats.byId;
@@ -45,9 +55,9 @@ const ChatlistNew = ({ invite }: OwnProps) => {
   }, [invite, selectedPeerIds]);
 
   const handleSelectionToggle = useCallback(() => {
-    const areAllSelected = selectedPeerIds.length === invite.peerIds.length;
-    setSelectedPeerIds(areAllSelected ? joinedIds : invite.peerIds);
-  }, [invite.peerIds, joinedIds, selectedPeerIds.length]);
+    const areAllSelected = selectedPeerIds.length === selectableIds.length;
+    setSelectedPeerIds(areAllSelected ? joinedIds : selectableIds);
+  }, [selectableIds, joinedIds, selectedPeerIds.length]);
 
   return (
     <div className={styles.content}>
@@ -65,12 +75,14 @@ const ChatlistNew = ({ invite }: OwnProps) => {
             tabIndex={0}
             onClick={handleSelectionToggle}
           >
-            {selectedPeerIds.length === invite.peerIds.length ? lang('DeselectAll') : lang('ContextMenuItemSelectAll')}
+            {selectedPeerIds.length === selectableIds.length ? lang('DeselectAll') : lang('ContextMenuItemSelectAll')}
           </div>
         </div>
         <PeerPicker
           itemIds={invite.peerIds}
           lockedSelectedIds={joinedIds}
+          lockedUnselectedIds={restrictedIds}
+          lockedUnselectedSubtitle={lang('TelesrvJoinRestricted')}
           onSelectedIdsChange={setSelectedPeerIds}
           selectedIds={selectedPeerIds}
           allowMultiple

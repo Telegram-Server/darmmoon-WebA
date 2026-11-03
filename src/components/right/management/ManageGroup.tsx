@@ -17,6 +17,7 @@ import {
 } from '../../../global/helpers';
 import {
   selectCanBanUsers, selectChat, selectChatFullInfo, selectIsChatRestricted, selectTabState,
+  selectTelesrvCanLeave,
 } from '../../../global/selectors';
 import { debounce } from '../../../util/schedulers';
 import { formatInteger } from '../../../util/textFormat';
@@ -60,6 +61,7 @@ type StateProps = {
   exportedInvites?: ApiExportedInvite[];
   isChannelsPremiumLimitReached: boolean;
   availableReactions?: ApiAvailableReaction[];
+  canLeave: boolean;
 };
 
 const GROUP_TITLE_EMPTY = 'GroupTitleEmptyError';
@@ -97,6 +99,7 @@ const ManageGroup = ({
   canBanUsers,
   canInvite,
   canEditForum,
+  canLeave,
   isActive,
   exportedInvites,
   isChannelsPremiumLimitReached,
@@ -455,11 +458,13 @@ const ManageGroup = ({
             </div>
           )}
         </Island>
-        <Island>
-          <ListItem icon="delete" ripple destructive onClick={openDeleteDialog}>
-            {lang('DeleteMega')}
-          </ListItem>
-        </Island>
+        {canLeave && (
+          <Island>
+            <ListItem icon="delete" ripple destructive onClick={openDeleteDialog}>
+              {lang('DeleteMega')}
+            </ListItem>
+          </Island>
+        )}
       </div>
       <FloatingActionButton
         isShown={isProfileFieldsTouched}
@@ -513,6 +518,7 @@ export default memo(withGlobal<OwnProps>(
       isChannelsPremiumLimitReached: limitReachedModal?.limit === 'channels',
       availableReactions: global.reactions.availableReactions,
       canEditForum,
+      canLeave: selectTelesrvCanLeave(global, chatId),
     };
   },
   (global, { chatId }) => {

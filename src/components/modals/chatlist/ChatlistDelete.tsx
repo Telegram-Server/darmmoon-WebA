@@ -1,8 +1,11 @@
-import { memo, useCallback, useState } from '../../../lib/teact/teact';
-import { getActions } from '../../../global';
+import {
+  memo, useCallback, useMemo, useState,
+} from '../../../lib/teact/teact';
+import { getActions, getGlobal } from '../../../global';
 
 import type { ApiChatFolder } from '../../../api/types';
 
+import { selectTelesrvCanLeave } from '../../../global/selectors';
 import buildClassName from '../../../util/buildClassName';
 import { MEMO_EMPTY_ARRAY } from '../../../util/memo';
 import renderText from '../../common/helpers/renderText';
@@ -30,12 +33,21 @@ const ChatlistDelete = ({
 
   const [selectedPeerIds, setSelectedPeerIds] = useState<string[]>([]);
 
+  const restrictedIds = useMemo(() => {
+    const global = getGlobal();
+    return suggestedPeerIds.filter((id) => !selectTelesrvCanLeave(global, id));
+  }, [suggestedPeerIds]);
+
+  const selectableIds = useMemo(() => {
+    return suggestedPeerIds.filter((id) => !restrictedIds.includes(id));
+  }, [suggestedPeerIds, restrictedIds]);
+
   const badgeText = selectedPeerIds.length ? selectedPeerIds.length.toString() : undefined;
 
   const handleSelectionToggle = useCallback(() => {
-    const areAllSelected = selectedPeerIds.length === suggestedPeerIds.length;
-    setSelectedPeerIds(areAllSelected ? [] : suggestedPeerIds);
-  }, [suggestedPeerIds, selectedPeerIds.length]);
+    const areAllSelected = selectedPeerIds.length === selectableIds.length;
+    setSelectedPeerIds(areAllSelected ? [] : selectableIds);
+  }, [selectableIds, selectedPeerIds.length]);
 
   const handleButtonClick = useCallback(() => {
     closeChatlistModal();
@@ -64,13 +76,15 @@ const ChatlistDelete = ({
                 tabIndex={0}
                 onClick={handleSelectionToggle}
               >
-                {selectedPeerIds.length === suggestedPeerIds.length
+                {selectedPeerIds.length === selectableIds.length
                   ? lang('DeselectAll')
                   : lang('ContextMenuItemSelectAll')}
               </div>
             </div>
             <PeerPicker
               itemIds={suggestedPeerIds}
+              lockedUnselectedIds={restrictedIds}
+              lockedUnselectedSubtitle={lang('TelesrvPermissionDenied')}
               onSelectedIdsChange={setSelectedPeerIds}
               selectedIds={selectedPeerIds}
               allowMultiple

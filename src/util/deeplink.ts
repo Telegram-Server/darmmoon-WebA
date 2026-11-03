@@ -10,7 +10,7 @@ import {
   API_CHAT_TYPES, RE_TG_LINK, TON_CURRENCY_CODE, WALLET_BOT_USERNAME,
 } from '../config';
 import { IS_BAD_URL_PARSER } from './browser/globalEnvironment';
-import { RE_TON_TRANSFER_LINK, tryParseDeepLink } from './deepLinkParser';
+import { normalizeDmLink, RE_TON_TRANSFER_LINK, tryParseDeepLink } from './deepLinkParser';
 import { parseTonTransferLink } from './tonAddress';
 import { buildTonConnectLinkFromStartApp, isTonConnectLink, parseTonConnectLink } from './tonConnectLink';
 
@@ -24,8 +24,9 @@ function openTonConnectLink(url: string) {
   });
 }
 
-export const processDeepLink = (url: string, linkContext?: LinkContext): boolean => {
+export const processDeepLink = (link: string, linkContext?: LinkContext): boolean => {
   const actions = getActions();
+  const url = normalizeDmLink(link);
 
   // Claimed even without the wallet, or `ton://…` would go through the `https` parsing
   const isWalletAvailable = getGlobal().appConfig.isWalletAvailable;

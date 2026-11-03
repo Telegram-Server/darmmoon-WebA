@@ -219,6 +219,13 @@ addActionHandler('setAuthRememberMe', (global, actions, payload): ActionReturnTy
   });
 });
 
+addActionHandler('toggleAuthPasswordLogin', (global): ActionReturnType => {
+  return updateAuth(global, {
+    isPasswordLogin: !global.auth.isPasswordLogin,
+    errorKey: undefined,
+  });
+});
+
 addActionHandler('clearAuthErrorKey', (global): ActionReturnType => {
   return updateAuth(global, {
     errorKey: undefined,

@@ -174,6 +174,10 @@ import {
   selectSendAs,
   selectStoppableTypingDraftId,
   selectTabState,
+  selectTelesrvAllows,
+  selectTelesrvCanClearHistory,
+  selectTelesrvCanSendTo,
+  selectTelesrvSendErrorKey,
   selectTranslationLanguage,
   selectUser,
   selectUserFullInfo,
@@ -458,6 +462,11 @@ async function fetchAndStoreRichMessage(chat: ApiChat, messageId: number, isSche
 
 addActionHandler('startEditingMessage', async (global, actions, payload): Promise<void> => {
   const { messageId, tabId = getCurrentTabId() } = payload;
+  if (!selectTelesrvAllows(global, 'edit')) {
+    actions.showNotification({ message: { key: 'TelesrvPermissionDenied' }, tabId });
+    return;
+  }
+
   const messageList = selectCurrentMessageList(global, tabId);
   if (!messageList) {
     return;
@@ -528,6 +537,12 @@ addActionHandler('sendMessage', async (global, actions, payload): Promise<void> 
   }
 
   payload = omit(payload, ['tabId']);
+
+  const sendErrorKey = selectTelesrvSendErrorKey(global, chatId!);
+  if (sendErrorKey) {
+    actions.showNotification({ message: { key: sendErrorKey }, tabId });
+    return;
+  }
 
   if (type === 'scheduled' && !payload.scheduledAt) {
     global = updateTabState(global, {
@@ -837,7 +852,7 @@ addActionHandler('sendInviteMessages', async (global, actions, payload): Promise
   const userFullNames: string[] = [];
   await Promise.all(userIds.map((userId) => {
     const chat = selectChat(global, userId);
-    if (!chat) {
+    if (!chat || !selectTelesrvCanSendTo(global, userId)) {
       return Promise.resolve(undefined);
     }
     const userFullName = getUserFullName(getTranslationFn(), selectUser(global, userId));
@@ -881,6 +896,11 @@ addActionHandler('editMessage', (global, actions, payload): ActionReturnType => 
   } = payload;
 
   if (!messageList) {
+    return;
+  }
+
+  if (!selectTelesrvAllows(global, 'edit')) {
+    actions.showNotification({ message: { key: 'TelesrvPermissionDenied' }, tabId });
     return;
   }
 
@@ -928,8 +948,13 @@ addActionHandler('editMessage', (global, actions, payload): ActionReturnType => 
 
 addActionHandler('editTodo', (global, actions, payload): ActionReturnType => {
   const {
-    chatId, todo, messageId,
+    chatId, todo, messageId, tabId = getCurrentTabId(),
   } = payload;
+
+  if (!selectTelesrvAllows(global, 'edit')) {
+    actions.showNotification({ message: { key: 'TelesrvPermissionDenied' }, tabId });
+    return;
+  }
 
   const chat = selectChat(global, chatId);
   const message = selectChatMessage(global, chatId, messageId);
@@ -1304,6 +1329,16 @@ addActionHandler('deleteMessages', (global, actions, payload): ActionReturnType 
     return;
   }
 
+  // Sending and failed messages stay deletable
+  if (!selectTelesrvAllows(global, 'delete')) {
+    const localIds = messageIds.filter((id) => !messageIdsToDelete.includes(id));
+    if (localIds.length) {
+      deleteMessages(global, isChatChannel(chat) || isChatSuperGroup(chat) ? chatId : undefined, localIds, actions);
+    }
+    actions.showNotification({ message: { key: 'TelesrvPermissionDenied' }, tabId });
+    return;
+  }
+
   void callApi('deleteMessages', { chat, messageIds: messageIdsToDelete, shouldDeleteForAll });
 
   const editingId = selectEditingId(global, chatId, threadId);
@@ -1376,8 +1411,13 @@ addActionHandler('resetLocalPaidMessages', (global, actions, payload): ActionRet
 
 addActionHandler('deleteParticipantHistory', (global, actions, payload): ActionReturnType => {
   const {
-    chatId, peerId,
+    chatId, peerId, tabId = getCurrentTabId(),
   } = payload;
+  if (!selectTelesrvAllows(global, 'clear_history')) {
+    actions.showNotification({ message: { key: 'TelesrvPermissionDenied' }, tabId });
+    return;
+  }
+
   const chat = selectChat(global, chatId)!;
   const peer = selectPeer(global, peerId)!;
 
@@ -1388,6 +1428,11 @@ addActionHandler('deleteScheduledMessages', (global, actions, payload): ActionRe
   const { messageIds, tabId = getCurrentTabId() } = payload;
   const currentMessageList = selectCurrentMessageList(global, tabId);
   if (!currentMessageList) {
+    return;
+  }
+
+  if (!selectTelesrvAllows(global, 'delete')) {
+    actions.showNotification({ message: { key: 'TelesrvPermissionDenied' }, tabId });
     return;
   }
 
@@ -1406,6 +1451,11 @@ addActionHandler('deleteHistory', async (global, actions, payload): Promise<void
   const { chatId, shouldDeleteForAll, tabId = getCurrentTabId() } = payload;
   const chat = selectChat(global, chatId);
   if (!chat) {
+    return;
+  }
+
+  if (!selectTelesrvCanClearHistory(global, chatId)) {
+    actions.showNotification({ message: { key: 'TelesrvPermissionDenied' }, tabId });
     return;
   }
 
@@ -1442,6 +1492,11 @@ addActionHandler('deleteSavedHistory', async (global, actions, payload): Promise
   const { chatId, tabId = getCurrentTabId() } = payload;
   const chat = selectChat(global, chatId);
   if (!chat) {
+    return;
+  }
+
+  if (!selectTelesrvAllows(global, 'clear_history')) {
+    actions.showNotification({ message: { key: 'TelesrvPermissionDenied' }, tabId });
     return;
   }
 
@@ -1954,12 +2009,18 @@ addActionHandler('loadScheduledHistory', async (global, actions, payload): Promi
 
 addActionHandler('sendScheduledMessages', (global, actions, payload): ActionReturnType => {
   const {
-    chatId, id,
+    chatId, id, tabId = getCurrentTabId(),
   } = payload;
 
   const chat = selectChat(global, chatId);
 
   if (!chat) {
+    return;
+  }
+
+  const sendErrorKey = selectTelesrvSendErrorKey(global, chatId);
+  if (sendErrorKey) {
+    actions.showNotification({ message: { key: sendErrorKey }, tabId });
     return;
   }
 
@@ -1971,8 +2032,13 @@ addActionHandler('sendScheduledMessages', (global, actions, payload): ActionRetu
 
 addActionHandler('rescheduleMessage', (global, actions, payload): ActionReturnType => {
   const {
-    chatId, messageId, scheduledAt, scheduleRepeatPeriod,
+    chatId, messageId, scheduledAt, scheduleRepeatPeriod, tabId = getCurrentTabId(),
   } = payload;
+
+  if (!selectTelesrvAllows(global, 'edit')) {
+    actions.showNotification({ message: { key: 'TelesrvPermissionDenied' }, tabId });
+    return;
+  }
 
   const chat = selectChat(global, chatId);
   const message = chat && selectScheduledMessage(global, chat.id, messageId);
@@ -2059,6 +2125,12 @@ addActionHandler('forwardMessages', (global, actions, payload): ActionReturnType
   const { toChatId, toThreadId = MAIN_THREAD_ID } = selectTabState(global, tabId).forwardMessages;
   const toChat = toChatId ? selectChat(global, toChatId) : undefined;
   if (!toChat) return;
+
+  const sendErrorKey = selectTelesrvSendErrorKey(global, toChat.id);
+  if (sendErrorKey) {
+    actions.showNotification({ message: { key: sendErrorKey }, tabId });
+    return;
+  }
 
   // `sendMessage` advances the gradient for forwards-with-comment, which go through it instead
   if (!scheduledAt) {
@@ -2627,7 +2699,9 @@ async function sendMessagesWithNotification<T extends GlobalState>(
 }
 
 addActionHandler('sendMessages', async (global, actions, payload): Promise<void> => {
-  const { sendParams } = payload;
+  const sendParams = payload.sendParams.filter((params) => (
+    !params.chat || selectTelesrvCanSendTo(global, params.chat.id)
+  ));
   await Promise.all(sendParams.map(async (params) => {
     if (params.forwardedLocalMessagesSlice && params.forwardParams) {
       await rafPromise();
@@ -3437,7 +3511,7 @@ addActionHandler('forwardToMultipleChats', (global, actions, payload): ActionRet
 
   for (const { chatId, topicId } of targets) {
     const toChat = selectChat(global, chatId);
-    if (!toChat) continue;
+    if (!toChat || !selectTelesrvCanSendTo(global, chatId)) continue;
 
     forwardMessagesToChat({
       global,
@@ -3478,6 +3552,12 @@ addActionHandler('forwardStory', (global, actions, payload): ActionReturnType =>
     return;
   }
 
+  const sendErrorKey = selectTelesrvSendErrorKey(global, toChat.id);
+  if (sendErrorKey) {
+    actions.showNotification({ message: { key: sendErrorKey }, tabId });
+    return;
+  }
+
   const lastMessageId = selectChatLastMessageId(global, toChatId);
 
   const { text, entities } = (story as ApiStory).content.text || {};
@@ -3505,6 +3585,12 @@ addActionHandler('forwardAudio', async (global, actions, payload): Promise<void>
   const { audioItem } = selectTabState(global, tabId).forwardMessages;
   const toChat = selectChat(global, toChatId);
   if (!toChat || !audioItem) {
+    return;
+  }
+
+  const sendErrorKey = selectTelesrvSendErrorKey(global, toChatId);
+  if (sendErrorKey) {
+    actions.showNotification({ message: { key: sendErrorKey }, tabId });
     return;
   }
 
@@ -3901,9 +3987,15 @@ addActionHandler('loadQuickReplies', async (global): Promise<void> => {
 });
 
 addActionHandler('sendQuickReply', (global, actions, payload): ActionReturnType => {
-  const { chatId, quickReplyId } = payload;
+  const { chatId, quickReplyId, tabId = getCurrentTabId() } = payload;
   const chat = selectChat(global, chatId);
   if (!chat) return global;
+
+  const sendErrorKey = selectTelesrvSendErrorKey(global, chatId);
+  if (sendErrorKey) {
+    actions.showNotification({ message: { key: sendErrorKey }, tabId });
+    return global;
+  }
   callApi('sendQuickReply', {
     chat,
     shortcutId: quickReplyId,

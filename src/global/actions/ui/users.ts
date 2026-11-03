@@ -5,13 +5,18 @@ import { addTabStateResetterAction } from '../../helpers/meta';
 import { addActionHandler } from '../../index';
 import { closeNewContactDialog } from '../../reducers';
 import { updateTabState } from '../../reducers/tabs';
-import { selectIsCurrentUserFrozen } from '../../selectors';
+import { selectIsCurrentUserFrozen, selectTelesrvAllows } from '../../selectors';
 
 addActionHandler('openAddContactDialog', (global, actions, payload): ActionReturnType => {
   const { userId, tabId = getCurrentTabId() } = payload;
 
   if (selectIsCurrentUserFrozen(global)) {
     actions.openFrozenAccountModal({ tabId });
+    return global;
+  }
+
+  if (!selectTelesrvAllows(global, 'add_contact')) {
+    actions.showNotification({ message: { key: 'TelesrvPermissionDenied' }, tabId });
     return global;
   }
 
@@ -25,6 +30,11 @@ addActionHandler('openNewContactDialog', (global, actions, payload): ActionRetur
 
   if (selectIsCurrentUserFrozen(global)) {
     actions.openFrozenAccountModal({ tabId });
+    return global;
+  }
+
+  if (!selectTelesrvAllows(global, 'add_contact')) {
+    actions.showNotification({ message: { key: 'TelesrvPermissionDenied' }, tabId });
     return global;
   }
 

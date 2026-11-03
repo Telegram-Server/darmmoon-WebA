@@ -32,6 +32,7 @@ export interface ApiInitialArgs {
   isTestServerRequested?: boolean;
   accountIds?: string[];
   hasPasskeySupport?: boolean;
+  deviceId?: string;
 }
 
 export type ApiPasskeyOption = {
@@ -273,6 +274,17 @@ export interface ApiCountryCode extends ApiCountry {
   patterns?: string[];
 }
 
+export type ApiTelesrvAction = 'send' | 'delete' | 'edit' | 'clear_history' | 'create_group' | 'create_channel'
+  | 'join_group' | 'join_channel' | 'leave_group' | 'leave_channel' | 'add_contact';
+
+export interface ApiTelesrvPermissions {
+  forbiddenActions: ApiTelesrvAction[];
+  sendWhitelist?: {
+    isEnabled: boolean;
+    userIds: string[];
+  };
+}
+
 export interface ApiAppConfig {
   hash: number;
   emojiSounds: Record<string, string>;
@@ -382,6 +394,8 @@ export interface ApiAppConfig {
   aiComposeToneTitleLengthMax?: number;
   aiComposeTonePromptLengthMax?: number;
   botAllowedSuffixes?: string[];
+  isPasswordLoginAvailable?: boolean;
+  telesrvPermissions?: ApiTelesrvPermissions;
 }
 
 export interface ApiConfig {

@@ -62,6 +62,8 @@ export type ApiUpdateAuthorizationStateType = (
   'authorizationStateWaitPhoneNumber' |
   'authorizationStateWaitCode' |
   'authorizationStateWaitPassword' |
+  'authorizationStateWaitLoginPassword' |
+  'authorizationStateWaitSignupPassword' |
   'authorizationStateWaitRegistration' |
   'authorizationStateReady' |
   'authorizationStateClosing' |
@@ -82,6 +84,7 @@ export type ApiUpdateAuthorizationState = {
   hint?: string;
   noReset?: boolean;
   qrCode?: { token: string; expires: number };
+  isPasswordSignup?: boolean;
 };
 
 export type ApiUpdateWebAuthTokenFailed = {
@@ -577,6 +580,10 @@ export type ApiUpdateError = {
 export type ApiUpdateNotSupportedInFrozenAccountError = {
   '@type': 'notSupportedInFrozenAccount';
   error: ApiError;
+};
+
+export type ApiUpdateTelesrvPermissionError = {
+  '@type': 'telesrvPermissionError';
 };
 
 export type ApiUpdateConfig = {
@@ -1077,6 +1084,7 @@ export type ApiUpdate = (
   | ApiDeleteQuickReply | ApiUpdateDeleteQuickReplyMessages | ApiUpdateDeleteProfilePhoto | ApiUpdateNewProfilePhoto
   | ApiUpdateEntities | ApiUpdatePaidReactionPrivacy | ApiUpdateLangPackTooLong | ApiUpdateLangPack
   | ApiUpdateNotSupportedInFrozenAccountError
+  | ApiUpdateTelesrvPermissionError
   | ApiUpdateAiComposeTones | ApiUpdateWalletState | ApiUpdateWalletActivity
   | ApiUpdateWalletSentTransaction | ApiUpdateWalletGaslessInfo
   | ApiUpdateWalletTonConnectSession | ApiUpdateWalletTonConnectPendingDisconnect

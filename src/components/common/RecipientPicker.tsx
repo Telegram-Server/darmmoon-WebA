@@ -20,7 +20,7 @@ import {
 import { filterPeersByQuery } from '../../global/helpers/peers';
 import {
   filterChatIdsByType, selectCanInviteToChat, selectChat, selectChatFullInfo,
-  selectIsMonoforumAdmin, selectTopic, selectUser,
+  selectIsMonoforumAdmin, selectTelesrvCanSendTo, selectTopic, selectUser,
 } from '../../global/selectors';
 import { selectCurrentLimit } from '../../global/selectors/limits';
 import { unique } from '../../util/iteratees';
@@ -359,6 +359,7 @@ function getIsRecipientAllowed(
   shouldFilterInviteable?: boolean,
 ) {
   if (isSystemBot(id)) return false;
+  if (!shouldFilterInviteable && !selectTelesrvCanSendTo(global, id)) return false;
 
   const chat = selectChat(global, id);
   const user = selectUser(global, id);

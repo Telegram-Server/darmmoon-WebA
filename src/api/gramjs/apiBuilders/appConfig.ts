@@ -1,6 +1,8 @@
 import { Api as GramJs } from '../../../lib/gramjs';
 
-import type { ApiAppConfig, ApiLimitType, ApiPremiumSection } from '../../types';
+import type {
+  ApiAppConfig, ApiLimitType, ApiPremiumSection, ApiTelesrvAction, ApiTelesrvPermissions,
+} from '../../types';
 
 import { omitUndefined } from '../../../util/iteratees';
 import {
@@ -152,6 +154,11 @@ export interface GramJsAppConfig extends LimitsConfig {
   aicompose_tone_title_length_max?: number;
   aicompose_tone_prompt_length_max?: number;
   bot_allowed_suffixes?: string[];
+  telesrv_features?: string[];
+  telesrv_permissions?: Record<string, boolean | {
+    enabled?: boolean;
+    user_ids?: number[];
+  }>;
 }
 
 function buildEmojiSounds(appConfig: GramJsAppConfig) {
@@ -187,6 +194,40 @@ function getLimit(appConfig: GramJsAppConfig, key: Limit, fallbackKey: ApiLimitT
   const defaultLimit = appConfig[`${key}_default`] || DEFAULT_LIMITS[fallbackKey][0];
   const premiumLimit = appConfig[`${key}_premium`] || DEFAULT_LIMITS[fallbackKey][1];
   return [defaultLimit, premiumLimit] as const;
+}
+
+const TELESRV_ACTIONS = new Set<string>([
+  'send', 'delete', 'edit', 'clear_history', 'create_group', 'create_channel',
+  'join_group', 'join_channel', 'leave_group', 'leave_channel', 'add_contact',
+] satisfies ApiTelesrvAction[]);
+
+function buildTelesrvPermissions(
+  value: GramJsAppConfig['telesrv_permissions'],
+): ApiTelesrvPermissions | undefined {
+  if (!value || typeof value !== 'object') return undefined;
+
+  const forbiddenActions: ApiTelesrvAction[] = [];
+  let sendWhitelist: ApiTelesrvPermissions['sendWhitelist'];
+  Object.entries(value).forEach(([key, inner]) => {
+    if (key === 'send_whitelist') {
+      if (!inner || typeof inner !== 'object') return;
+      sendWhitelist = {
+        isEnabled: inner.enabled === true,
+        userIds: (inner.user_ids || [])
+          .filter((id) => typeof id === 'number')
+          .map((id) => String(Math.round(id))),
+      };
+      return;
+    }
+
+    if (inner === false && TELESRV_ACTIONS.has(key)) {
+      forbiddenActions.push(key as ApiTelesrvAction);
+    }
+  });
+
+  if (!forbiddenActions.length && !sendWhitelist?.isEnabled) return undefined;
+
+  return { forbiddenActions, sendWhitelist };
 }
 
 // The config is JSON, so nanotons arrive as doubles and only whole values are taken
@@ -322,6 +363,8 @@ export function buildAppConfig(json: GramJs.TypeJSONValue, hash: number): ApiApp
     aiComposeToneTitleLengthMax: appConfig.aicompose_tone_title_length_max,
     aiComposeTonePromptLengthMax: appConfig.aicompose_tone_prompt_length_max,
     botAllowedSuffixes: appConfig.bot_allowed_suffixes,
+    isPasswordLoginAvailable: appConfig.telesrv_features?.includes('password_login'),
+    telesrvPermissions: buildTelesrvPermissions(appConfig.telesrv_permissions),
   };
 
   return {

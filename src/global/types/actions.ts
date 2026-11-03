@@ -160,6 +160,9 @@ export interface ActionPayloads {
     lastName: string;
   };
   returnToAuthPhoneNumber: undefined;
+  returnToAuthSignupPassword: undefined;
+  toggleAuthPasswordLogin: undefined;
+  switchAuthToCode: undefined;
   setAuthRememberMe: { value: boolean };
   clearAuthErrorKey: undefined;
   uploadProfilePhoto: {
@@ -412,7 +415,7 @@ export interface ActionPayloads {
   setChatHistoryTtl: {
     chatId: string;
     period: number;
-  };
+  } & WithTabId;
   preloadTopChatMessages: undefined;
   loadAllChats: {
     listType: ChatListType;
@@ -525,13 +528,13 @@ export interface ActionPayloads {
   sendScheduledMessages: {
     chatId: string;
     id: number;
-  };
+  } & WithTabId;
   rescheduleMessage: {
     chatId: string;
     messageId: number;
     scheduledAt: number;
     scheduleRepeatPeriod?: number;
-  };
+  } & WithTabId;
   deleteScheduledMessages: { messageIds: number[] } & WithTabId;
   // Message
   loadViewportMessages: {
@@ -1741,7 +1744,7 @@ export interface ActionPayloads {
   sendQuickReply: {
     chatId: string;
     quickReplyId: number;
-  };
+  } & WithTabId;
   animateUnreadReaction: {
     chatId: string;
     messageIds: number[];
@@ -2664,7 +2667,7 @@ export interface ActionPayloads {
     bot: ApiUser;
     data: string;
     buttonText: string;
-  };
+  } & WithTabId;
 
   loadAttachBots: undefined;
 
@@ -3032,7 +3035,7 @@ export interface ActionPayloads {
   } & WithTabId;
   closeShareChatFolderModal: undefined | WithTabId;
   loadDefaultHistoryTtl: undefined;
-  setDefaultHistoryTtl: { period: number };
+  setDefaultHistoryTtl: { period: number } & WithTabId;
   loadGlobalPrivacySettings: undefined;
   updateGlobalPrivacySettings: {
     shouldArchiveAndMuteNewNonContact?: boolean;

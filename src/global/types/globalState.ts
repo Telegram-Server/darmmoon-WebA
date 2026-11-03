@@ -192,6 +192,8 @@ export type GlobalState = {
       expires: number;
     };
     passkeyOption?: ApiPasskeyOption;
+    isPasswordLogin?: boolean;
+    isPasswordSignup?: boolean;
 
     hasWebAuthTokenFailed?: true;
     hasWebAuthTokenPasswordRequired?: true;

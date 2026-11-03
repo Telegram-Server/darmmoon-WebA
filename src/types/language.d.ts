@@ -3376,6 +3376,27 @@ export interface LangPair {
   'SettingsKeywordsLastSeen': undefined;
   'SettingsKeywordsLogOut': undefined;
   'SettingsSearchEmpty': undefined;
+  'TelesrvPermissionDenied': undefined;
+  'TelesrvSendRestricted': undefined;
+  'TelesrvSendWhitelistRestricted': undefined;
+  'TelesrvJoinRestricted': undefined;
+  'AuthLoginWithPassword': undefined;
+  'AuthLoginWithCode': undefined;
+  'AuthPasswordLoginDesc': undefined;
+  'AuthLoginPasswordDesc': undefined;
+  'AuthLoginPasswordField': undefined;
+  'AuthLoginPasswordToCode': undefined;
+  'AuthSignupPasswordTitle': undefined;
+  'AuthSignupPasswordDesc': undefined;
+  'AuthSignupPasswordField': undefined;
+  'AuthSignupPasswordRepeat': undefined;
+  'ErrorSignupPasswordsDiffer': undefined;
+  'ErrorPasswordLoginNotSet': undefined;
+  'ErrorPasswordLoginUnavailable': undefined;
+  'ErrorSignUpClosed': undefined;
+  'ErrorSignupPasswordOccupied': undefined;
+  'ErrorDeviceLimitReached': undefined;
+  'ErrorDeviceIdRequired': undefined;
 }
 
 export interface LangPairWithVariables<V = LangVariable> {

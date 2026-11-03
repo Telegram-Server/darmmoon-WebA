@@ -3,8 +3,12 @@ import {
 } from '../../lib/teact/teact';
 import { getActions } from '../../global';
 
+import type { GlobalState } from '../../global/types';
+
+import { selectTelesrvCanCreate } from '../../global/selectors';
 import buildClassName from '../../util/buildClassName';
 
+import useSelector from '../../hooks/data/useSelector';
 import useLang from '../../hooks/useLang';
 
 import Icon from '../common/icons/Icon';
@@ -21,6 +25,14 @@ type OwnProps = {
   onNewGroup: () => void;
   isAccountFrozen?: boolean;
 };
+
+function selectCanCreateChannel(global: GlobalState) {
+  return selectTelesrvCanCreate(global, true);
+}
+
+function selectCanCreateGroup(global: GlobalState) {
+  return selectTelesrvCanCreate(global, false);
+}
 
 const NewChatButton = ({
   isShown,
@@ -41,6 +53,8 @@ const NewChatButton = ({
   }, [shouldRender]);
 
   const lang = useLang();
+  const canCreateChannel = useSelector(selectCanCreateChannel);
+  const canCreateGroup = useSelector(selectCanCreateGroup);
 
   const fabClassName = buildClassName(
     'NewChatButton',
@@ -62,11 +76,11 @@ const NewChatButton = ({
 
   const menuItems = useMemo(() => (
     <>
-      <MenuItem icon="channel" onClick={onNewChannel}>{lang('NewChannel')}</MenuItem>
-      <MenuItem icon="group" onClick={onNewGroup}>{lang('NewGroup')}</MenuItem>
+      {canCreateChannel && <MenuItem icon="channel" onClick={onNewChannel}>{lang('NewChannel')}</MenuItem>}
+      {canCreateGroup && <MenuItem icon="group" onClick={onNewGroup}>{lang('NewGroup')}</MenuItem>}
       <MenuItem icon="user" onClick={onNewPrivateChat}>{lang('NewMessageTitle')}</MenuItem>
     </>
-  ), [lang, onNewChannel, onNewGroup, onNewPrivateChat]);
+  ), [lang, canCreateChannel, canCreateGroup, onNewChannel, onNewGroup, onNewPrivateChat]);
 
   return (
     <div className={fabClassName} dir={lang.isRtl ? 'rtl' : undefined}>

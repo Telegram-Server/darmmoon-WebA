@@ -13,6 +13,7 @@ import {
 import { selectChat, selectIsChatRestricted, selectIsChatWithSelf } from './chats';
 import { selectCurrentMessageList } from './messages';
 import { selectTabState } from './tabs';
+import { selectTelesrvAllows } from './telesrv';
 import { selectBot, selectUser } from './users';
 
 export function selectManagement<T extends GlobalState>(
@@ -79,6 +80,9 @@ export function selectCanManage<T extends GlobalState>(
   if (!chat || isRestricted || chat.isMonoforum) return false;
 
   const isPrivate = isUserId(chat.id);
+  // Managing a user means editing the contact
+  if (isPrivate && !selectTelesrvAllows(global, 'add_contact')) return false;
+
   const user = isPrivate ? selectUser(global, chatId) : undefined;
   const canAddContact = user && getCanAddContact(user);
 
@@ -99,6 +103,9 @@ export function selectCanManageAutoDelete<T extends GlobalState>(
 ) {
   const chat = selectChat(global, chatId);
   if (!chat || selectIsChatRestricted(global, chatId) || chat.isMonoforum) return false;
+
+  // Without the delete permission, an existing timer can only be turned off
+  if (!chat.ttlPeriod && !selectTelesrvAllows(global, 'delete')) return false;
 
   if (
     selectIsChatWithSelf(global, chatId)

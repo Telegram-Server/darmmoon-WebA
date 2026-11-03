@@ -70,6 +70,8 @@ import {
   selectRequestedChatTranslationTone,
   selectRequestedMessageTranslationLanguage,
   selectStickerSet,
+  selectTelesrvAllows,
+  selectTelesrvCanSendTo,
   selectTopic,
   selectUser,
   selectUserFullInfo,
@@ -955,6 +957,7 @@ export default memo(withGlobal<OwnProps>(
     );
     const isPinned = messageListType === 'pinned';
     const isScheduled = messageListType === 'scheduled';
+    const canSendScheduledNow = isScheduled && selectTelesrvCanSendTo(global, message.chatId);
     const isChannel = chat && isChatChannel(chat);
 
     const threadInfo = threadId && selectThreadInfo(global, message.chatId, threadId);
@@ -1037,8 +1040,8 @@ export default memo(withGlobal<OwnProps>(
       defaultTagReactions: defaultTags,
       noOptions: message.isEphemeral ? false : noOptions,
       canReport: message.isEphemeral ? !message.isOutgoing : canReport,
-      canSendNow: isScheduled,
-      canReschedule: isScheduled,
+      canSendNow: canSendScheduledNow,
+      canReschedule: canSendScheduledNow && selectTelesrvAllows(global, 'edit'),
       canReply: message.isEphemeral
         ? getCanReplyToEphemeralMessage(message)
         : !isPinned && !isScheduled && canReplyGlobally,

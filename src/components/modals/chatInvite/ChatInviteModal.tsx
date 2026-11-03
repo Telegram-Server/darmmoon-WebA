@@ -1,12 +1,13 @@
-import { memo, useMemo, useRef } from '../../../lib/teact/teact';
+import { memo, useCallback, useMemo, useRef } from '../../../lib/teact/teact';
 import { getActions, getGlobal } from '../../../global';
 
-import type { TabState } from '../../../global/types';
+import type { GlobalState, TabState } from '../../../global/types';
 
 import { getCustomPeerFromInvite, getUserFullName } from '../../../global/helpers';
-import { selectUser } from '../../../global/selectors';
+import { selectTelesrvCanJoinByType, selectUser } from '../../../global/selectors';
 import buildClassName from '../../../util/buildClassName';
 
+import useSelector from '../../../hooks/data/useSelector';
 import useHorizontalScroll from '../../../hooks/useHorizontalScroll';
 import useLang from '../../../hooks/useLang';
 import useLastCallback from '../../../hooks/useLastCallback';
@@ -35,6 +36,11 @@ const ChatInviteModal = ({ modal }: OwnProps) => {
   const {
     about, isBroadcast, participantIds, participantsCount = 0, photo, isRequestNeeded,
   } = inviteInfo || {};
+
+  const canJoinSelector = useCallback((global: GlobalState) => (
+    selectTelesrvCanJoinByType(global, Boolean(isBroadcast))
+  ), [isBroadcast]);
+  const canJoin = useSelector(canJoinSelector);
 
   const handleClose = useLastCallback(() => {
     closeChatInviteModal();
@@ -72,7 +78,7 @@ const ChatInviteModal = ({ modal }: OwnProps) => {
       contentClassName={styles.content}
       isSlim
       onClose={handleClose}
-      onEnter={handleAccept}
+      onEnter={canJoin ? handleAccept : handleClose}
     >
       {customPeer && <Avatar size="giant" photo={photo} peer={customPeer} withVideo />}
       {customPeer && <FullNameTitle className={styles.title} peer={customPeer} />}
@@ -91,10 +97,13 @@ const ChatInviteModal = ({ modal }: OwnProps) => {
           ))}
         </div>
       )}
+      {!canJoin && <p className={styles.about}>{lang('TelesrvJoinRestricted')}</p>}
       <div className={buildClassName('dialog-buttons', styles.buttons)}>
-        <Button isText className="confirm-dialog-button" onClick={handleAccept}>
-          {lang(isRequestNeeded ? requestToJoinLangKey : acceptLangKey)}
-        </Button>
+        {canJoin && (
+          <Button isText className="confirm-dialog-button" onClick={handleAccept}>
+            {lang(isRequestNeeded ? requestToJoinLangKey : acceptLangKey)}
+          </Button>
+        )}
         <Button isText className="confirm-dialog-button" onClick={handleClose}>
           {lang('Cancel')}
         </Button>

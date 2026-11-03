@@ -33,6 +33,7 @@ import {
   selectIsCurrentUserPremium,
   selectPeer,
   selectPeerPhotos,
+  selectTelesrvAllows,
   selectUser,
   selectUserCommonChats,
   selectUserFullInfo,
@@ -295,6 +296,11 @@ addActionHandler('updateContact', async (global, actions, payload): Promise<void
     return;
   }
 
+  if (!selectTelesrvAllows(global, 'add_contact')) {
+    actions.showNotification({ message: { key: 'TelesrvPermissionDenied' }, tabId });
+    return;
+  }
+
   global = getGlobal();
   global = updateManagementProgress(global, ManagementProgress.InProgress, tabId);
   setGlobal(global);
@@ -467,6 +473,11 @@ addActionHandler('importContact', async (global, actions, payload): Promise<void
     phoneNumber: phone, firstName, lastName,
     tabId = getCurrentTabId(),
   } = payload;
+
+  if (!selectTelesrvAllows(global, 'add_contact')) {
+    actions.showNotification({ message: { key: 'TelesrvPermissionDenied' }, tabId });
+    return;
+  }
 
   const result = await callApi('importContact', { phone, firstName, lastName });
   if (!result) {

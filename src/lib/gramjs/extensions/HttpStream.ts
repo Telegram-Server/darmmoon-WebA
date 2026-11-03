@@ -68,12 +68,9 @@ export default class HttpStream {
     return data;
   }
 
-  static getURL(ip: string, port: number, isTestServer?: boolean, isPremium?: boolean) {
-    if (port === 443) {
-      return `https://${ip}:${port}/apiw1${isTestServer ? '_test' : ''}${isPremium ? '_premium' : ''}`;
-    } else {
-      return `http://${ip}:${port}/apiw1${isTestServer ? '_test' : ''}${isPremium ? '_premium' : ''}`;
-    }
+  // The server has no separate premium endpoints
+  static getURL(ip: string, port: number, isTestServer?: boolean) {
+    return `https://${ip}:${port}/apiw1${isTestServer ? '_test' : ''}`;
   }
 
   connect(port: number, ip: string, isTestServer = false, isPremium = false) {
@@ -86,7 +83,7 @@ export default class HttpStream {
       this.rejectRead = reject;
     });
     void this.canRead.catch(() => undefined);
-    this.url = HttpStream.getURL(ip, port, isTestServer, isPremium);
+    this.url = HttpStream.getURL(ip, port, isTestServer);
     this.isClosed = false;
 
     return Promise.resolve();

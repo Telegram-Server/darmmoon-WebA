@@ -9,7 +9,9 @@ import { ARCHIVED_FOLDER_ID, SERVICE_NOTIFICATIONS_USER_ID } from '../config';
 import {
   getCanDeleteChat, isChatArchived, isChatChannel, isChatCommunity, isChatGroup,
 } from '../global/helpers';
-import { selectChat, selectIsChatPinned } from '../global/selectors';
+import {
+  selectChat, selectIsChatPinned, selectTelesrvAllows, selectTelesrvCanDeleteChat,
+} from '../global/selectors';
 import { selectThreadReadState } from '../global/selectors/threads';
 import { IS_TAURI } from '../util/browser/globalEnvironment';
 import { IS_OPEN_IN_NEW_TAB_SUPPORTED } from '../util/browser/windowEnvironment';
@@ -94,8 +96,16 @@ const useChatContextActions = ({
   }, [chat, isInCommunityPanel, isPinned]);
   const isResolvedPinned = useSelector(isResolvedPinnedSelector);
 
+  const canDeleteSelector = useCallback((global: GlobalState) => {
+    if (!chat) return false;
+    return isSavedDialog
+      ? selectTelesrvAllows(global, 'clear_history')
+      : selectTelesrvCanDeleteChat(global, chat.id);
+  }, [chat, isSavedDialog]);
+  const canDelete = useSelector(canDeleteSelector);
+
   const deleteTitle = useMemo(() => {
-    if (!chat) return undefined;
+    if (!chat || !canDelete) return undefined;
 
     if (isSavedDialog) {
       return lang('Delete');
@@ -114,7 +124,7 @@ const useChatContextActions = ({
     }
 
     return lang('GroupLeaveGroup');
-  }, [chat, isSavedDialog, lang]);
+  }, [chat, canDelete, isSavedDialog, lang]);
 
   const preparedActions = useMemo(() => {
     if (!chat || isPreview) {

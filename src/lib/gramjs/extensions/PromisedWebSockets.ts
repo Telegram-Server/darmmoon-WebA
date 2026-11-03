@@ -78,12 +78,9 @@ export default class PromisedWebSockets {
     return toReturn;
   }
 
-  getWebSocketLink(ip: string, port: number, isTestServer?: boolean, isPremium?: boolean) {
-    if (port === 443) {
-      return `wss://${ip}:${port}/apiws${isTestServer ? '_test' : ''}${isPremium ? '_premium' : ''}`;
-    } else {
-      return `ws://${ip}:${port}/apiws${isTestServer ? '_test' : ''}${isPremium ? '_premium' : ''}`;
-    }
+  // The server has no separate premium endpoints
+  getWebSocketLink(ip: string, port: number, isTestServer?: boolean) {
+    return `wss://${ip}:${port}/apiws${isTestServer ? '_test' : ''}`;
   }
 
   connect(port: number, ip: string, isTestServer = false, isPremium = false) {
@@ -92,7 +89,7 @@ export default class PromisedWebSockets {
       this.resolveRead = resolve;
     });
     this.closed = false;
-    this.website = this.getWebSocketLink(ip, port, isTestServer, isPremium);
+    this.website = this.getWebSocketLink(ip, port, isTestServer);
     this.client = new WebSocket(this.website, 'binary');
     this.client.binaryType = 'arraybuffer';
 

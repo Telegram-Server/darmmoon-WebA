@@ -43,6 +43,7 @@ import {
   selectNotifyDefaults,
   selectNotifyException,
   selectTabState,
+  selectTelesrvAllows,
   selectTopic,
   selectUser,
   selectUserFullInfo,
@@ -967,7 +968,7 @@ export default memo(withGlobal<OwnProps>(
     }
     const isPrivate = isUserId(chat.id);
     const user = isPrivate ? selectUser(global, chatId) : undefined;
-    const canAddContact = user && getCanAddContact(user);
+    const canAddContact = user && getCanAddContact(user) && selectTelesrvAllows(global, 'add_contact');
     const isMainThread = threadId === MAIN_THREAD_ID;
     const isChatWithSelf = selectIsChatWithSelf(global, chatId);
     const { chatId: currentChatId, threadId: currentThreadId } = selectCurrentMessageList(global) || {};

@@ -7,6 +7,7 @@ import type { SharedSettings } from '../../../global/types';
 import type { AccountSettings } from '../../../types';
 import { SettingsScreens } from '../../../types';
 
+import { TME_LINK_PREFIX } from '../../../config';
 import { selectIsCurrentUserPremium } from '../../../global/selectors';
 import { selectSharedSettings } from '../../../global/selectors/sharedState';
 import { IS_TRANSLATION_SUPPORTED } from '../../../util/browser/windowEnvironment';
@@ -97,7 +98,7 @@ const SettingsLanguage = ({
   )), [customLanguages, languages]);
 
   const handleCopyLink = useLastCallback((langCode: string) => {
-    if (copyTextToClipboard(`https://t.me/setlanguage/${encodeURIComponent(langCode)}`)) {
+    if (copyTextToClipboard(`${TME_LINK_PREFIX}setlanguage/${encodeURIComponent(langCode)}`)) {
       showNotification({ message: { key: 'LinkCopied' } });
     }
   });

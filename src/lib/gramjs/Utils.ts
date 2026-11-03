@@ -1,5 +1,9 @@
+import type { DcId } from '../../types';
 import type { Entity } from './types';
 
+import {
+  DC_HOST, DC_IDS, DC_MEDIA_HOST, DC_PORT,
+} from '../../config';
 import { bufferFromHex, concat } from '../../util/encoding/buffer';
 import { Api } from './tl';
 
@@ -180,55 +184,13 @@ export function getDisplayName(entity: Entity) {
  * @return {{port: number, ipAddress: string, id: number}}
  */
 export function getDC(dcId: number, downloadDC = false) {
-  // TODO Move to external config
-  switch (dcId) {
-    case 1:
-      return {
-        id: 1,
-        ipAddress: `zws1${downloadDC ? '-1' : ''}.web.telegram.org`,
-        port: 443,
-      };
-    case 2:
-      return {
-        id: 2,
-        ipAddress: `zws2${downloadDC ? '-1' : ''}.web.telegram.org`,
-        port: 443,
-      };
-    case 3:
-      return {
-        id: 3,
-        ipAddress: `zws3${downloadDC ? '-1' : ''}.web.telegram.org`,
-        port: 443,
-      };
-    case 4:
-      return {
-        id: 4,
-        ipAddress: `zws4${downloadDC ? '-1' : ''}.web.telegram.org`,
-        port: 443,
-      };
-    case 5:
-      return {
-        id: 5,
-        ipAddress: `zws5${downloadDC ? '-1' : ''}.web.telegram.org`,
-        port: 443,
-      };
-    default:
-      throw new Error(`Cannot find the DC with the ID of ${dcId}`);
+  if (!DC_IDS.includes(dcId as DcId)) {
+    throw new Error(`Cannot find the DC with the ID of ${dcId}`);
   }
-  // TODO chose based on current connection method
-  /*
-    if (!this._config) {
-        this._config = await this.invoke(new requests.help.GetConfig())
-    }
-    if (cdn && !this._cdnConfig) {
-        this._cdnConfig = await this.invoke(new requests.help.GetCdnConfig())
-        for (const pk of this._cdnConfig.publicKeys) {
-            addKey(pk.publicKey)
-        }
-    }
-    for (const DC of this._config.dcOptions) {
-        if (DC.id === dcId && Boolean(DC.ipv6) === this._useIPV6 && Boolean(DC.cdn) === cdn) {
-            return DC
-        }
-    } */
+
+  return {
+    id: dcId,
+    ipAddress: downloadDC ? DC_MEDIA_HOST : DC_HOST,
+    port: DC_PORT,
+  };
 }

@@ -26,6 +26,7 @@ import {
   selectPeerStory,
   selectPerformanceSettingsValue,
   selectTabState,
+  selectTelesrvCanSendTo,
   selectUser,
   selectUserFullInfo,
 } from '../../global/selectors';
@@ -108,6 +109,7 @@ interface StateProps {
   withHeaderAnimation?: boolean;
   paidMessagesStars?: number;
   isAccountFrozen?: boolean;
+  canSendReply: boolean;
 }
 
 const VIDEO_MIN_READY_STATE = IS_SAFARI ? 4 : 3;
@@ -144,6 +146,7 @@ function Story({
   withHeaderAnimation,
   paidMessagesStars,
   isAccountFrozen,
+  canSendReply,
   onDelete,
   onClose,
   onReport,
@@ -244,7 +247,8 @@ function Story({
     ? story.content.video.duration
     : undefined;
 
-  const shouldShowComposer = !(isOut && isUserStory) && !isChangelog && !isChannelStory && !isAccountFrozen;
+  const shouldShowComposer = !(isOut && isUserStory) && !isChangelog && !isChannelStory && !isAccountFrozen
+    && canSendReply;
   const shouldShowFooter = isLoadedStory && !shouldShowComposer && (isOut || isChannelStory);
   const headerAnimation = isMobile && withHeaderAnimation ? 'slideFade' : 'none';
 
@@ -1016,5 +1020,6 @@ export default memo(withGlobal<OwnProps>((global, {
     withHeaderAnimation,
     paidMessagesStars,
     isAccountFrozen,
+    canSendReply: selectTelesrvCanSendTo(global, peerId),
   };
 })(Story));

@@ -4,17 +4,22 @@ import type { Update } from './TelegramClient';
 
 import { DEBUG } from '../../../config';
 import { base64UrlToString } from '../../../util/encoding/base64';
+import { concat } from '../../../util/encoding/buffer';
 import { tryParseBigInt } from '../../../util/numbers';
 import { getServerTime } from '../../../util/serverTime';
 import { DEFAULT_PRIMITIVES } from '../../../api/gramjs/gramjsBuilders';
 import { buildInputPasskeyCredential } from '../../../api/gramjs/gramjsBuilders/passkeys';
 import {
-  PasskeyCredentialNotFoundError, PasskeyLoginRequestedError, RPCError, UserAlreadyAuthorizedError,
+  PasskeyCredentialNotFoundError,
+  PasskeyLoginRequestedError,
+  PasswordLoginRequestedError,
+  RPCError,
+  UserAlreadyAuthorizedError,
 } from '../errors';
 import Api from '../tl/api';
 
-import { sleep } from '../Helpers';
-import { computeCheck as computePasswordSrpCheck } from '../Password';
+import { generateRandomBytes, sleep } from '../Helpers';
+import { computeCheck as computePasswordSrpCheck, computeDigest } from '../Password';
 import { getDisplayName } from '../Utils';
 
 export interface UserAuthParams {
@@ -23,7 +28,9 @@ export interface UserAuthParams {
   onPasskeyOption: (passkeyOption: ApiPasskeyOption) => void;
   phoneCode: (isCodeViaApp?: boolean) => Promise<string>;
   password: (hint?: string, noReset?: boolean) => Promise<string>;
-  firstAndLastNames: () => Promise<[string, string?]>;
+  loginPassword: () => Promise<string>;
+  signupPassword: () => Promise<string>;
+  firstAndLastNames: (isPasswordSignup?: boolean) => Promise<[string, string?]>;
   qrCode: (qrCode: { token: Uint8Array; expires: number }) => Promise<void>;
   onError: (err: Error) => void;
   forceSMS?: boolean;
@@ -46,6 +53,14 @@ interface ApiCredentials {
 
 type AuthMethod = 'phoneNumber' | 'qrCode';
 const DEFAULT_INITIAL_METHOD: AuthMethod = 'phoneNumber';
+const NEW_PASSWORD_SALT_LENGTH = 32;
+// The server burns a login password challenge after any answer, so it is renewed once on these errors
+const LOGIN_PASSWORD_CHALLENGE_ERRORS = new Set(['SRP_ID_INVALID', 'SRP_PASSWORD_CHANGED', 'AUTH_KEY_PERM_EMPTY']);
+// On these errors the login password flow returns to the phone number screen
+const LOGIN_PASSWORD_EXIT_ERRORS = new Set([
+  'PASSWORD_LOGIN_NOT_SET', 'PASSWORD_LOGIN_DISABLED', 'PHONE_NUMBER_INVALID',
+]);
+const DEVICE_BINDING_ERRORS = new Set(['AUTHORIZATIONS_TOO_MUCH', 'DEVICE_ID_REQUIRED']);
 let lastUsedMethod: AuthMethod = DEFAULT_INITIAL_METHOD;
 
 export async function authFlow(
@@ -133,6 +148,9 @@ async function signInUserWithWebToken(
   } catch (err: unknown) {
     client._log.error(`Failed to login with web token: ${String(err)}`);
     authParams.webAuthTokenFailed();
+    if (isDeviceBindingError(err)) {
+      authParams.onError(err);
+    }
     if (hasUnsafeAuthorization) {
       client.destroy();
       throw new Error('WEB_AUTH_USER_MISMATCH', { cause: err });
@@ -142,7 +160,7 @@ async function signInUserWithWebToken(
 }
 
 async function signInUser(
-  client: TelegramClient, apiCredentials: ApiCredentials, authParams: UserAuthParams,
+  client: TelegramClient, apiCredentials: ApiCredentials, authParams: UserAuthParams, presetPhoneNumber?: string,
 ): Promise<Api.TypeUser> {
   let phoneNumber;
   let phoneCodeHash;
@@ -151,7 +169,10 @@ async function signInUser(
 
   while (true) {
     try {
-      if (typeof authParams.phoneNumber === 'function') {
+      if (presetPhoneNumber) {
+        phoneNumber = presetPhoneNumber;
+        presetPhoneNumber = undefined;
+      } else if (typeof authParams.phoneNumber === 'function') {
         try {
           phoneNumber = await authParams.phoneNumber();
         } catch (err: unknown) {
@@ -161,6 +182,10 @@ async function signInUser(
 
           if (err instanceof PasskeyLoginRequestedError) {
             return await signInUserWithPasskey(client, apiCredentials, authParams, err.credentialJson);
+          }
+
+          if (err instanceof PasswordLoginRequestedError) {
+            return await signInUserWithLoginPassword(client, apiCredentials, authParams, err.phoneNumber);
           }
 
           throw err;
@@ -321,6 +346,12 @@ async function signInUserWithQrCode(
       return await signInUserWithPasskey(client, apiCredentials, authParams, err.credentialJson);
     }
 
+    // A new token would fail the same way, so the phone number login is offered instead
+    if (isDeviceBindingError(err)) {
+      authParams.onError(err);
+      return await signInUser(client, apiCredentials, authParams);
+    }
+
     throw err;
   } finally {
     isScanningComplete = true;
@@ -349,6 +380,11 @@ async function signInUserWithQrCode(
   } catch (err: unknown) {
     if (err instanceof RPCError && err.errorMessage === 'SESSION_PASSWORD_NEEDED') {
       return signInWithPassword(client, apiCredentials, authParams);
+    }
+
+    if (isDeviceBindingError(err)) {
+      authParams.onError(err);
+      return signInUserWithQrCode(client, apiCredentials, authParams);
     }
 
     throw err;
@@ -427,18 +463,18 @@ export async function signInUserWithPasskey(
     // We cannot call finishPasskeyLogin again with the same challenge
     refreshPasskeyLoginOption(client, apiCredentials, authParams);
 
-    const isPasskeyUnknownError = err instanceof PasskeyCredentialNotFoundError;
+    const shouldRestartLastMethod = err instanceof PasskeyCredentialNotFoundError || isDeviceBindingError(err);
 
-    if (isPasskeyUnknownError) {
+    if (shouldRestartLastMethod) {
       authParams.onError(err);
     }
 
     if (err instanceof Error) {
-      if (err.message === 'RESTART_AUTH' || (isPasskeyUnknownError && lastUsedMethod === 'phoneNumber')) {
+      if (err.message === 'RESTART_AUTH' || (shouldRestartLastMethod && lastUsedMethod === 'phoneNumber')) {
         return signInUser(client, apiCredentials, authParams);
       }
 
-      if (err.message === 'RESTART_AUTH_WITH_QR' || (isPasskeyUnknownError && lastUsedMethod === 'qrCode')) {
+      if (err.message === 'RESTART_AUTH_WITH_QR' || (shouldRestartLastMethod && lastUsedMethod === 'qrCode')) {
         return signInUserWithQrCode(client, apiCredentials, authParams);
       }
     }
@@ -453,6 +489,185 @@ export async function signInUserWithPasskey(
 
     throw err;
   }
+}
+
+async function signInUserWithLoginPassword(
+  client: TelegramClient, apiCredentials: ApiCredentials, authParams: UserAuthParams, phoneNumber: string,
+): Promise<Api.TypeUser> {
+  let challenge: Api.account.Password | undefined = await client.invoke(
+    new Api.telesrv.GetLoginPassword({ phoneNumber }),
+  );
+  if (!challenge.hasPassword) {
+    return signUpWithLoginPassword(client, apiCredentials, authParams, phoneNumber, challenge);
+  }
+
+  // eslint-disable-next-line no-constant-condition
+  while (1) {
+    let password: string;
+    try {
+      password = await authParams.loginPassword();
+    } catch (err: unknown) {
+      const isCodeRequested = err instanceof Error && err.message === 'RESTART_AUTH_WITH_CODE';
+      return signInUser(client, apiCredentials, authParams, isCodeRequested ? phoneNumber : undefined);
+    }
+
+    const currentChallenge = challenge;
+    // Each challenge answers one attempt only
+    challenge = undefined;
+
+    let user: Api.TypeUser | undefined;
+    try {
+      user = await checkLoginPassword(client, phoneNumber, password, currentChallenge);
+    } catch (err: unknown) {
+      if (err instanceof RPCError && err.errorMessage === 'SESSION_PASSWORD_NEEDED') {
+        return signInWithPassword(client, apiCredentials, authParams);
+      }
+
+      if (err instanceof Error) {
+        authParams.onError(err);
+      }
+
+      if (err instanceof RPCError && LOGIN_PASSWORD_EXIT_ERRORS.has(err.errorMessage)) {
+        return signInUser(client, apiCredentials, authParams);
+      }
+
+      continue;
+    }
+
+    // Without a user the account is deleted meanwhile, so the flow starts over from the phone number
+    return user || signInUser(client, apiCredentials, authParams);
+  }
+
+  return undefined!; // Never reached (TypeScript fix)
+}
+
+// Returns `undefined` when the account has no login password anymore
+async function checkLoginPassword(
+  client: TelegramClient, phoneNumber: string, password: string, challenge?: Api.account.Password,
+) {
+  let canRenewChallenge = true;
+
+  // eslint-disable-next-line no-constant-condition
+  while (1) {
+    const currentChallenge = challenge || await client.invoke(new Api.telesrv.GetLoginPassword({ phoneNumber }));
+    challenge = undefined;
+    if (!currentChallenge.hasPassword) return undefined;
+
+    try {
+      const result = await client.invoke(new Api.telesrv.SignInWithPassword({
+        phoneNumber,
+        password: await computePasswordSrpCheck(currentChallenge, password),
+      }));
+      if (!(result instanceof Api.auth.Authorization)) {
+        throw new Error('Unexpected sign up in password login');
+      }
+
+      return result.user;
+    } catch (err: unknown) {
+      if (!canRenewChallenge || !(err instanceof RPCError) || !LOGIN_PASSWORD_CHALLENGE_ERRORS.has(err.errorMessage)) {
+        throw err;
+      }
+
+      canRenewChallenge = false;
+    }
+  }
+
+  return undefined; // Never reached (TypeScript fix)
+}
+
+async function signUpWithLoginPassword(
+  client: TelegramClient,
+  apiCredentials: ApiCredentials,
+  authParams: UserAuthParams,
+  phoneNumber: string,
+  passwordState: Api.account.Password,
+): Promise<Api.TypeUser> {
+  const { newAlgo } = passwordState;
+  if (!(newAlgo instanceof Api.PasswordKdfAlgoSHA256SHA256PBKDF2HMACSHA512iter100000SHA256ModPow)) {
+    throw new Error('Password algorithm is unknown');
+  }
+
+  // eslint-disable-next-line no-constant-condition
+  while (1) {
+    let password: string;
+    try {
+      password = await authParams.signupPassword();
+    } catch (err: unknown) {
+      return signInUser(client, apiCredentials, authParams);
+    }
+
+    const algo = new Api.PasswordKdfAlgoSHA256SHA256PBKDF2HMACSHA512iter100000SHA256ModPow({
+      salt1: concat(newAlgo.salt1, generateRandomBytes(NEW_PASSWORD_SALT_LENGTH)),
+      salt2: newAlgo.salt2,
+      g: newAlgo.g,
+      p: newAlgo.p,
+    });
+
+    let newSettings: Api.account.PasswordInputSettings;
+    try {
+      newSettings = new Api.account.PasswordInputSettings({
+        newAlgo: algo,
+        newPasswordHash: await computeDigest(algo, password),
+      });
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        authParams.onError(err);
+      }
+      continue;
+    }
+
+    const user = await signUpWithNames(client, authParams, phoneNumber, newSettings);
+    if (user) return user;
+  }
+
+  return undefined!; // Never reached (TypeScript fix)
+}
+
+// Returns `undefined` when the user goes back to change the password
+async function signUpWithNames(
+  client: TelegramClient,
+  authParams: UserAuthParams,
+  phoneNumber: string,
+  newSettings: Api.account.PasswordInputSettings,
+) {
+  // eslint-disable-next-line no-constant-condition
+  while (1) {
+    let names: [string, string?];
+    try {
+      names = await authParams.firstAndLastNames(true);
+    } catch (err: unknown) {
+      return undefined;
+    }
+
+    try {
+      const [firstName, lastName] = names;
+      if (!firstName) {
+        throw new Error('First name is required');
+      }
+
+      const result = await client.invoke(new Api.telesrv.SignUpWithPassword({
+        phoneNumber,
+        firstName,
+        lastName: lastName || DEFAULT_PRIMITIVES.STRING,
+        newSettings,
+      }));
+      if (!(result instanceof Api.auth.Authorization)) {
+        throw new Error('Unexpected sign up result');
+      }
+
+      return result.user;
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        authParams.onError(err);
+      }
+    }
+  }
+
+  return undefined; // Never reached (TypeScript fix)
+}
+
+function isDeviceBindingError(err: unknown): err is RPCError {
+  return err instanceof RPCError && DEVICE_BINDING_ERRORS.has(err.errorMessage);
 }
 
 async function sendCode(

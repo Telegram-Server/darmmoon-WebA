@@ -15,6 +15,7 @@ import {
   IS_WEBM_SUPPORTED, MAX_BUFFER_SIZE, PLATFORM_ENV,
 } from '../../../util/browser/windowEnvironment';
 import * as cacheApi from '../../../util/cacheApi';
+import { DEVICE_ID_SOURCE_KEY, getDeviceId } from '../../../util/deviceId';
 import { getCurrentTabId } from '../../../util/establishMultitabRole';
 import {
   ACCOUNT_SLOT, getAccountsInfo, getAccountSlotUrl, getFirstLoggedInAccountSlot,
@@ -110,6 +111,7 @@ addActionHandler('initApi', async (global, actions): Promise<void> => {
       isTestServerRequested: hasTestParam,
       accountIds,
       hasPasskeySupport: IS_WEBAUTHN_SUPPORTED,
+      deviceId: await getDeviceId(),
     });
 
     void setShouldEnableDebugLog(Boolean(shouldCollectDebugLogs));
@@ -120,8 +122,9 @@ addActionHandler('initApi', async (global, actions): Promise<void> => {
 
 addActionHandler('setAuthPhoneNumber', (global, actions, payload): ActionReturnType => {
   const { phoneNumber } = payload;
+  const isPasswordLogin = global.auth.isPasswordLogin && global.appConfig.isPasswordLoginAvailable;
 
-  void callApi('provideAuthPhoneNumber', phoneNumber.replace(/[^\d]/g, ''));
+  void callApi('provideAuthPhoneNumber', phoneNumber.replace(/[^\d]/g, ''), isPasswordLogin);
 
   return updateAuth(global, {
     isLoading: true,
@@ -206,6 +209,24 @@ addActionHandler('returnToAuthPhoneNumber', (global): ActionReturnType => {
   void callApi('restartAuth');
 
   return updateAuth(global, {
+    errorKey: undefined,
+  });
+});
+
+addActionHandler('returnToAuthSignupPassword', (global): ActionReturnType => {
+  void callApi('restartAuth');
+
+  return updateAuth(global, {
+    errorKey: undefined,
+  });
+});
+
+addActionHandler('switchAuthToCode', (global): ActionReturnType => {
+  void callApi('restartAuthWithCode');
+
+  return updateAuth(global, {
+    isPasswordLogin: false,
+    isLoading: true,
     errorKey: undefined,
   });
 });
@@ -375,7 +396,10 @@ addActionHandler('signOutAllAccounts', async (): Promise<void> => {
   await clearPasscodeStore().catch(() => undefined);
 
   try {
+    // The device id stays stable across sign-outs
+    const deviceIdSource = localStorage.getItem(DEVICE_ID_SOURCE_KEY);
     localStorage.clear();
+    if (deviceIdSource) localStorage.setItem(DEVICE_ID_SOURCE_KEY, deviceIdSource);
     await MAIN_IDB_STORE.clear();
     if ('caches' in window) {
       const cacheKeys = await caches.keys();

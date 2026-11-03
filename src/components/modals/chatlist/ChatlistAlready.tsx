@@ -1,8 +1,11 @@
-import { memo, useCallback, useState } from '../../../lib/teact/teact';
-import { getActions } from '../../../global';
+import {
+  memo, useCallback, useMemo, useState,
+} from '../../../lib/teact/teact';
+import { getActions, getGlobal } from '../../../global';
 
 import type { ApiChatFolder, ApiChatlistInviteAlready } from '../../../api/types';
 
+import { selectIsTelesrvJoinRestricted } from '../../../global/selectors';
 import buildClassName from '../../../util/buildClassName';
 import renderText from '../../common/helpers/renderText';
 import { renderTextWithEntities } from '../../common/helpers/renderTextWithEntities';
@@ -25,7 +28,16 @@ const ChatlistAlready = ({ invite, folder }: OwnProps) => {
 
   const lang = useLang();
 
-  const [selectedPeerIds, setSelectedPeerIds] = useState<string[]>(invite.missingPeerIds);
+  const restrictedIds = useMemo(() => {
+    const global = getGlobal();
+    return invite.missingPeerIds.filter((id) => selectIsTelesrvJoinRestricted(global, id));
+  }, [invite.missingPeerIds]);
+
+  const selectableIds = useMemo(() => {
+    return invite.missingPeerIds.filter((id) => !restrictedIds.includes(id));
+  }, [invite.missingPeerIds, restrictedIds]);
+
+  const [selectedPeerIds, setSelectedPeerIds] = useState<string[]>(selectableIds);
 
   const hasChatsToAdd = Boolean(invite.missingPeerIds.length);
   const isNew = invite.alreadyPeerIds.length === 0;
@@ -57,9 +69,9 @@ const ChatlistAlready = ({ invite, folder }: OwnProps) => {
   }, [invite, selectedPeerIds]);
 
   const handleSelectionToggle = useCallback(() => {
-    const areAllSelected = selectedPeerIds.length === invite.missingPeerIds.length;
-    setSelectedPeerIds(areAllSelected ? [] : invite.missingPeerIds);
-  }, [invite.missingPeerIds, selectedPeerIds.length]);
+    const areAllSelected = selectedPeerIds.length === selectableIds.length;
+    setSelectedPeerIds(areAllSelected ? [] : selectableIds);
+  }, [selectableIds, selectedPeerIds.length]);
 
   return (
     <div className={styles.content}>
@@ -83,12 +95,14 @@ const ChatlistAlready = ({ invite, folder }: OwnProps) => {
                 tabIndex={0}
                 onClick={handleSelectionToggle}
               >
-                {selectedPeerIds.length === invite.missingPeerIds.length
+                {selectedPeerIds.length === selectableIds.length
                   ? lang('DeselectAll') : lang('ContextMenuItemSelectAll')}
               </div>
             </div>
             <PeerPicker
               itemIds={invite.missingPeerIds}
+              lockedUnselectedIds={restrictedIds}
+              lockedUnselectedSubtitle={lang('TelesrvJoinRestricted')}
               onSelectedIdsChange={setSelectedPeerIds}
               selectedIds={selectedPeerIds}
               allowMultiple

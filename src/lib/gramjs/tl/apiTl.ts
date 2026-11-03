@@ -2235,4 +2235,7 @@ wallet.tonConnectClaimRequest#66b57b41 flags:# declined:flags.1?true session_id:
 wallet.tonConnectSubmitResponse#fac67d3c flags:# session_id:long msg_id:int body:bytes trace_id:flags.0?string = Bool;
 wallet.tonConnectNextEventId#775d7244 session_id:long = TonConnectNextEventId;
 wallet.tonConnectCloseSession#d63f61ce flags:# session_id:long body:flags.0?bytes = Bool;
-wallet.tonConnectGetSessions#a7ffb56e = wallet.TonConnectSessions;`;
+wallet.tonConnectGetSessions#a7ffb56e = wallet.TonConnectSessions;
+telesrv.getLoginPassword#e35bc783 flags:# phone_number:string = account.Password;
+telesrv.signInWithPassword#b57ee87d flags:# phone_number:string password:InputCheckPasswordSRP = auth.Authorization;
+telesrv.signUpWithPassword#e57cf5b6 flags:# phone_number:string first_name:string last_name:string new_settings:account.PasswordInputSettings = auth.Authorization;`;

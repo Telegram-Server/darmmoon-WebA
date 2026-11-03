@@ -1,11 +1,12 @@
 import { memo, useCallback, useMemo } from '../../../lib/teact/teact';
 import { getActions, withGlobal } from '../../../global';
 
-import type { ApiUser, ApiUserStatus } from '../../../api/types';
+import type { ApiTelesrvPermissions, ApiUser, ApiUserStatus } from '../../../api/types';
 import { StoryViewerOrigin } from '../../../types';
 
 import { sortUserIds } from '../../../global/helpers';
 import { filterPeersByQuery } from '../../../global/helpers/peers';
+import { selectTelesrvAllows } from '../../../global/selectors';
 
 import useAppLayout from '../../../hooks/useAppLayout';
 import useHistoryBack from '../../../hooks/useHistoryBack';
@@ -28,6 +29,8 @@ type StateProps = {
   usersById: Record<string, ApiUser>;
   userStatusesById: Record<string, ApiUserStatus>;
   contactIds?: string[];
+  sendWhitelist?: ApiTelesrvPermissions['sendWhitelist'];
+  canAddContact: boolean;
 };
 
 const ContactList = ({
@@ -36,6 +39,8 @@ const ContactList = ({
   usersById,
   userStatusesById,
   contactIds,
+  sendWhitelist,
+  canAddContact,
   onReset,
 }: OwnProps & StateProps) => {
   const {
@@ -60,10 +65,13 @@ const ContactList = ({
       return undefined;
     }
 
-    const filteredIds = filterPeersByQuery({ ids: contactIds, query: filter, type: 'user' });
+    const allowedIds = sendWhitelist?.isEnabled
+      ? contactIds.filter((id) => sendWhitelist.userIds.includes(id))
+      : contactIds;
+    const filteredIds = filterPeersByQuery({ ids: allowedIds, query: filter, type: 'user' });
 
     return sortUserIds(filteredIds, usersById, userStatusesById);
-  }, [contactIds, filter, usersById, userStatusesById]);
+  }, [contactIds, filter, usersById, userStatusesById, sendWhitelist]);
 
   const [viewportIds, getMore] = useInfiniteScroll(undefined, listIds, Boolean(filter));
 
@@ -95,7 +103,7 @@ const ContactList = ({
       )}
       <FloatingActionButton
         key="create-new-contact"
-        isShown
+        isShown={canAddContact}
         onClick={openNewContactDialog}
         ariaLabel={lang('CreateNewContact')}
         iconName="add-user-filled"
@@ -113,6 +121,8 @@ export default memo(withGlobal<OwnProps>(
       usersById,
       userStatusesById,
       contactIds,
+      sendWhitelist: global.appConfig.telesrvPermissions?.sendWhitelist,
+      canAddContact: selectTelesrvAllows(global, 'add_contact'),
     };
   },
 )(ContactList));

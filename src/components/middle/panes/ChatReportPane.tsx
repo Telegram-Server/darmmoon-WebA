@@ -7,7 +7,7 @@ import {
   getChatTitle, getUserFirstOrLastName, getUserFullName, isChatBasicGroup,
 } from '../../../global/helpers';
 import { isApiPeerChat, isApiPeerUser } from '../../../global/helpers/peers';
-import { selectPeer } from '../../../global/selectors';
+import { selectPeer, selectTelesrvAllows, selectTelesrvCanDeleteChat } from '../../../global/selectors';
 import buildClassName from '../../../util/buildClassName';
 
 import useFlag from '../../../hooks/useFlag';
@@ -35,6 +35,8 @@ type OwnProps = {
 type StateProps = {
   currentUserId?: string;
   peer?: ApiPeer;
+  isAddContactAllowed: boolean;
+  canDeleteChat: boolean;
 };
 
 const ChatReportPane = ({
@@ -42,10 +44,12 @@ const ChatReportPane = ({
   className,
   isAutoArchived,
   canReportSpam,
-  canAddContact,
+  canAddContact: canAddContactProp,
   canBlockContact,
   peer,
   currentUserId,
+  isAddContactAllowed,
+  canDeleteChat,
   onPaneStateChange,
 }: OwnProps & StateProps) => {
   const {
@@ -64,6 +68,7 @@ const ChatReportPane = ({
   const [shouldReportSpam, setShouldReportSpam] = useState<boolean>(true);
   const [shouldDeleteChat, setShouldDeleteChat] = useState<boolean>(true);
 
+  const canAddContact = canAddContactProp && isAddContactAllowed;
   const hasAnyButton = canAddContact || canBlockContact || canReportSpam;
   const isRendering = Boolean(hasAnyButton && peer);
 
@@ -74,8 +79,9 @@ const ChatReportPane = ({
     canBlockContact: renderingCanBlockContact,
     canReportSpam: renderingCanReportSpam,
     isAutoArchived: renderingIsAutoArchived,
+    canDeleteChat: renderingCanDeleteChat,
   } = useFrozenProps({
-    chatId, peer, canAddContact, canBlockContact, canReportSpam, isAutoArchived,
+    chatId, peer, canAddContact, canBlockContact, canReportSpam, isAutoArchived, canDeleteChat,
   }, !isRendering);
   const chat = renderingPeer && isApiPeerChat(renderingPeer) ? renderingPeer : undefined;
   const user = renderingPeer && isApiPeerUser(renderingPeer) ? renderingPeer : undefined;
@@ -94,7 +100,7 @@ const ChatReportPane = ({
     if (renderingCanReportSpam && shouldReportSpam) {
       reportSpam({ chatId: renderingChatId });
     }
-    if (shouldDeleteChat) {
+    if (renderingCanDeleteChat && shouldDeleteChat) {
       deleteHistory({ chatId: renderingChatId, shouldDeleteForAll: false });
     }
   });
@@ -106,6 +112,8 @@ const ChatReportPane = ({
   const handleChatReportSpam = useLastCallback(() => {
     closeBlockUserModal();
     reportSpam({ chatId: renderingChatId });
+    if (!renderingCanDeleteChat) return;
+
     if (isBasicGroup) {
       deleteChatUser({ chatId: renderingChatId, userId: currentUserId! });
       deleteHistory({ chatId: renderingChatId, shouldDeleteForAll: false });
@@ -189,7 +197,7 @@ const ChatReportPane = ({
         confirmLabel={lang('Block')}
         confirmHandler={user ? handleConfirmBlock : handleChatReportSpam}
       >
-        {user && (
+        {user && renderingCanDeleteChat && (
           <Checkbox
             className="dialog-checkbox"
             label={lang('DeleteThisChat')}
@@ -214,5 +222,7 @@ export default memo(withGlobal<OwnProps>(
   (global, { chatId }): Complete<StateProps> => ({
     currentUserId: global.currentUserId,
     peer: selectPeer(global, chatId),
+    isAddContactAllowed: selectTelesrvAllows(global, 'add_contact'),
+    canDeleteChat: selectTelesrvCanDeleteChat(global, chatId),
   }),
 )(ChatReportPane));

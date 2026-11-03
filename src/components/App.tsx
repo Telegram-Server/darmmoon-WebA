@@ -159,6 +159,8 @@ const App = ({
         activeKey = AppScreens.auth;
         break;
       case 'authorizationStateWaitPassword':
+      case 'authorizationStateWaitLoginPassword':
+      case 'authorizationStateWaitSignupPassword':
         page = 'authPassword';
         activeKey = AppScreens.auth;
         break;

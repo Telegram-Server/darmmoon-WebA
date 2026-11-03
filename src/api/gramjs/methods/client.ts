@@ -66,10 +66,12 @@ import {
   onCurrentUserUpdate,
   onPasskeyOption,
   onRequestCode,
+  onRequestLoginPassword,
   onRequestPassword,
   onRequestPhoneNumber,
   onRequestQrCode,
   onRequestRegistration,
+  onRequestSignupPassword,
   onWebAuthTokenFailed,
 } from './auth';
 import downloadMediaWithClient, { parseMediaUrl } from './media';
@@ -78,6 +80,7 @@ import { ChatAbortController } from '../ChatAbortController';
 
 const DEFAULT_USER_AGENT = 'Unknown UserAgent';
 const DEFAULT_PLATFORM = 'Unknown platform';
+const TELESRV_PERMISSION_ERROR_PREFIX = 'TELESRV_PERMISSION_';
 
 GramJsLogger.setLevel(DEBUG_GRAMJS ? 'debug' : 'warn');
 
@@ -103,7 +106,7 @@ export async function init(initialArgs: ApiInitialArgs, onConnected?: NoneToVoid
     userAgent, platform, sessionData, isWebmSupported, maxBufferSize, webAuthToken, dcId,
     shouldForceHttpTransport, shouldAllowHttpTransport,
     shouldDebugExportedSenders, langCode, isTestServerRequested, accountIds,
-    hasPasskeySupport, webAuthUserId,
+    hasPasskeySupport, webAuthUserId, deviceId,
   } = initialArgs;
 
   const session = new sessions.CallbackSession(sessionData, onSessionUpdate);
@@ -130,6 +133,7 @@ export async function init(initialArgs: ApiInitialArgs, onConnected?: NoneToVoid
       langCode,
       systemLangCode: navigator.language,
       isTestServerRequested,
+      deviceId,
     },
   );
 
@@ -150,6 +154,8 @@ export async function init(initialArgs: ApiInitialArgs, onConnected?: NoneToVoid
         phoneNumber: onRequestPhoneNumber,
         phoneCode: onRequestCode,
         password: onRequestPassword,
+        loginPassword: onRequestLoginPassword,
+        signupPassword: onRequestSignupPassword,
         firstAndLastNames: onRequestRegistration,
         onPasskeyOption,
         qrCode: onRequestQrCode,
@@ -341,9 +347,16 @@ export async function invokeRequest<T extends GramJs.AnyRequest>(
       dispatchNotSupportedInFrozenAccountUpdate(err, request);
     }
 
+    const isTelesrvPermissionError = message.startsWith(TELESRV_PERMISSION_ERROR_PREFIX);
+    if (isTelesrvPermissionError) {
+      sendApiUpdate({ '@type': 'telesrvPermissionError' });
+    }
+
     if (shouldThrow) {
       throw err;
     }
+
+    if (isTelesrvPermissionError) return undefined;
 
     dispatchErrorUpdate(err, request);
 

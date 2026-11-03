@@ -20,6 +20,7 @@ import {
   selectChatFullInfo,
   selectIsChatWithSelf,
   selectTabState,
+  selectTelesrvAllows,
   selectTopic,
   selectUser,
 } from '../../global/selectors';
@@ -701,7 +702,7 @@ export default withGlobal<OwnProps>(
     const isSavedMessages = chatId && !isOwnProfile ? selectIsChatWithSelf(global, chatId) : undefined;
     const canEditBot = isBot && user?.canEditBot;
 
-    const canAddContact = user && getCanAddContact(user);
+    const canAddContact = user && getCanAddContact(user) && selectTelesrvAllows(global, 'add_contact');
     const canManage = Boolean(!isManagement && isProfile && chatId && selectCanManage(global, chatId));
 
     const isEditingInvite = Boolean(chatId && tabState.management.byChatId[chatId]?.editingInvite);

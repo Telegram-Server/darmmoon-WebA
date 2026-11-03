@@ -33,6 +33,14 @@ import { updateTabState } from '../../reducers/tabs';
 import { selectTabState } from '../../selectors';
 import { selectSharedSettings } from '../../selectors/sharedState';
 
+const TELESRV_PERMISSION_REFRESH_TIMEOUT = 10000;
+// These errors can arrive on any auth screen, including the QR code one without an error field
+const NOTIFICATION_AUTH_ERRORS = new Set([
+  'PASSKEY_CREDENTIAL_NOT_FOUND', 'AUTHORIZATIONS_TOO_MUCH', 'DEVICE_ID_REQUIRED',
+]);
+
+let lastTelesrvPermissionRefreshAt = 0;
+
 addActionHandler('apiUpdate', (global, actions, update): ActionReturnType => {
   switch (update['@type']) {
     case 'updateApiReady':
@@ -125,6 +133,20 @@ addActionHandler('apiUpdate', (global, actions, update): ActionReturnType => {
       });
       break;
     }
+
+    case 'telesrvPermissionError': {
+      actions.showNotification({
+        message: { key: 'TelesrvPermissionDenied' },
+        tabId: getCurrentTabId(),
+      });
+
+      const now = Date.now();
+      if (now - lastTelesrvPermissionRefreshAt > TELESRV_PERMISSION_REFRESH_TIMEOUT) {
+        lastTelesrvPermissionRefreshAt = now;
+        actions.loadAppConfig();
+      }
+      break;
+    }
   }
 });
 
@@ -178,6 +200,12 @@ function onUpdateAuthorizationState<T extends GlobalState>(global: T, update: Ap
       });
       setGlobal(global);
       break;
+    case 'authorizationStateWaitRegistration':
+      global = updateAuth(global, {
+        isPasswordSignup: update.isPasswordSignup,
+      });
+      setGlobal(global);
+      break;
     case 'authorizationStateReady': {
       if (wasAuthReady) {
         break;
@@ -201,7 +229,7 @@ function onUpdateAuthorizationState<T extends GlobalState>(global: T, update: Ap
 }
 
 function onUpdateAuthorizationError<T extends GlobalState>(global: T, update: ApiUpdateAuthorizationError) {
-  if (update.errorCode === 'PASSKEY_CREDENTIAL_NOT_FOUND') {
+  if (update.errorCode && NOTIFICATION_AUTH_ERRORS.has(update.errorCode)) {
     getActions().showNotification({
       message: update.errorKey,
       tabId: getCurrentTabId(),
@@ -209,10 +237,21 @@ function onUpdateAuthorizationError<T extends GlobalState>(global: T, update: Ap
     return;
   }
 
+  const isPasswordLoginUnavailable = update.errorCode === 'PASSWORD_LOGIN_DISABLED';
+  if (isPasswordLoginUnavailable || update.errorCode === 'PASSWORD_LOGIN_NOT_SET') {
+    global = updateAuth(global, {
+      isPasswordLogin: false,
+    });
+  }
+
   global = updateAuth(global, {
     errorKey: update.errorKey,
   });
   setGlobal(global);
+
+  if (isPasswordLoginUnavailable) {
+    getActions().loadAppConfig();
+  }
 }
 
 function onUpdateUserAlreadyAuthorized<T extends GlobalState>(global: T, update: ApiUpdateUserAlreadyAuthorized) {

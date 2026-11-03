@@ -170,6 +170,10 @@ export default defineConfig(({ mode }): UserConfig => {
     throw new Error('Missing required Telegram API credentials');
   }
 
+  if (appEnv !== 'test' && !env.DC_HOST) {
+    throw new Error('Missing required `DC_HOST`');
+  }
+
   setViteEnv({
     TG_APP_ENV: appEnv,
     TG_APP_NAME: env.APP_NAME || '',
@@ -182,6 +186,9 @@ export default defineConfig(({ mode }): UserConfig => {
     TG_TELEGRAM_API_ID: telegramApiId,
     TG_TELEGRAM_API_HASH: telegramApiHash,
     TG_TEST_SESSION: env.TEST_SESSION || '',
+    TG_DC_HOST: env.DC_HOST || '',
+    TG_DC_MEDIA_HOST: env.DC_MEDIA_HOST || '',
+    TG_DC_PORT: env.DC_PORT || '',
   });
 
   return {
@@ -291,9 +298,8 @@ function setViteEnv(env: Record<string, string>) {
 function buildCsp(appEnv: string) {
   return `
   default-src 'self';
-  connect-src 'self' wss://*.web.telegram.org blob: http: https: wss: ${appEnv === 'development' ? 'ipc:' : ''};
-  script-src 'self' 'wasm-unsafe-eval'
-    https://t.me/_websync_ https://telegram.me/_websync_ https://telegram.dog/_websync_;
+  connect-src 'self' blob: http: https: wss: ${appEnv === 'development' ? 'ipc:' : ''};
+  script-src 'self' 'wasm-unsafe-eval';
   worker-src 'self'${appEnv === 'development' ? ' blob:' : ''};
   style-src 'self' 'unsafe-inline';
   font-src 'self' data:;

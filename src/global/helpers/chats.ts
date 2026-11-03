@@ -27,7 +27,7 @@ import {
 import { getPeerIdDividend, isUserId } from '../../util/entities/ids';
 import { formatDateTime, secondsToDate } from '../../util/localization/dateFormat';
 import { getServerTime } from '../../util/serverTime';
-import { selectIsChatRestricted } from '../selectors';
+import { selectIsChatRestricted, selectTelesrvCanSendTo } from '../selectors';
 import { getGlobal } from '..';
 import { isSystemBot } from './bots';
 import { getMainUsername } from './users';
@@ -170,7 +170,8 @@ export function getCanPostInChat(
   const isRestricted = selectIsChatRestricted(global, chat.id);
   if (isRestricted || chat.isForbidden || chat.migratedTo
     || (chat.isNotJoined && !isChatMonoforum(chat) && !isMessageThread)
-    || isSystemBot(chat.id) || isAnonymousForwardsChat(chat.id)) {
+    || isSystemBot(chat.id) || isAnonymousForwardsChat(chat.id)
+    || !selectTelesrvCanSendTo(global, chat.id)) {
     return false;
   }
 

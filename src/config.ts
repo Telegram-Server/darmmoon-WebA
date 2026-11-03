@@ -39,6 +39,11 @@ export const TELEGRAM_API_ID = Number(import.meta.env.TG_TELEGRAM_API_ID);
 export const TELEGRAM_API_HASH = import.meta.env.TG_TELEGRAM_API_HASH;
 export const TEST_SESSION = import.meta.env.TG_TEST_SESSION;
 
+// All DCs share one WebSocket endpoint: `wss://<DC_HOST>:<DC_PORT>/apiws`
+export const DC_HOST = import.meta.env.TG_DC_HOST;
+export const DC_MEDIA_HOST = import.meta.env.TG_DC_MEDIA_HOST || DC_HOST;
+export const DC_PORT = Number(import.meta.env.TG_DC_PORT) || 443;
+
 export const SESSION_LEGACY_USER_KEY = 'user_auth';
 export const SESSION_ACCOUNT_PREFIX = 'account';
 
@@ -342,10 +347,13 @@ export const SUPPORTED_TRANSLATION_LANGUAGES = [
 // eslint-disable-next-line @stylistic/max-len
 export const RE_LINK_TEMPLATE = '((ftp|https?):\\/\\/)?((www\\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\\.[a-zA-Z][-a-zA-Z0-9]{1,62})\\b([-a-zA-Z0-9()@:%_+.,~#?&/=]*)';
 export const RE_MENTION_TEMPLATE = '(@[\\w\\d_-]+)';
-export const RE_TG_LINK = /^tg:(\/\/)?/i;
-export const RE_TME_LINK = /^(https?:\/\/)?(?:([-a-zA-Z0-9@:%_+~#=]{1,32}\.)?t\.me|telegram\.(?:me|dog))(?=[:/?#]|$)/i;
+// `dm://` is the server's own scheme, handled the same way as `tg://`
+export const RE_TG_LINK = /^(tg|dm):(\/\/)?/i;
+export const RE_DM_LINK_PROTOCOL = /^dm:/i;
+export const TME_HOSTNAME = 'darkmoon.cc';
+export const RE_TME_LINK = /^(https?:\/\/)?(?:([-a-zA-Z0-9@:%_+~#=]{1,32}\.)?darkmoon\.cc)(?=[:/?#]|$)/i;
 export const RE_TELEGRAM_LINK = /^(https?:\/\/)?telegram\.org\//i;
-export const TME_LINK_PREFIX = 'https://t.me/';
+export const TME_LINK_PREFIX = `https://${TME_HOSTNAME}/`;
 export const BOT_FATHER_USERNAME = 'botfather';
 // Gram Wallet
 export const WALLET_BOT_USERNAME = 'walt';
@@ -373,9 +381,7 @@ export const USERNAME_PURCHASE_ERROR = 'USERNAME_PURCHASE_AVAILABLE';
 export const MESSAGE_ID_REQUIRED_ERROR = 'MESSAGE_ID_REQUIRED';
 export const PURCHASE_USERNAME = 'auction';
 export const ACCEPTABLE_USERNAME_ERRORS = new Set([USERNAME_PURCHASE_ERROR, 'USERNAME_INVALID']);
-export const TME_WEB_DOMAINS = new Set([
-  't.me', 'telegram.me', 'telegram.dog', 'web.t.me', 'a.t.me', 'k.t.me', 'z.t.me',
-]);
+export const TME_WEB_DOMAINS = new Set([TME_HOSTNAME]);
 export const WEB_APP_PLATFORM = 'weba';
 export const LANG_PACK = 'weba';
 

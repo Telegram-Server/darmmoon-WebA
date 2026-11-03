@@ -1,6 +1,8 @@
 import type { ThreadId } from '../types';
 
-import { RE_TG_LINK, RE_TME_LINK, WALLET_SEND_LINK_DOMAIN } from '../config';
+import {
+  RE_DM_LINK_PROTOCOL, RE_TG_LINK, RE_TME_LINK, TME_HOSTNAME, WALLET_SEND_LINK_DOMAIN,
+} from '../config';
 import { MAX_COINS } from '../lib/ton/cell';
 import { IS_BAD_URL_PARSER } from './browser/globalEnvironment';
 import { ensureProtocol } from './browser/url';
@@ -204,7 +206,7 @@ type OAuthLinkBuilderParams = Omit<BuilderParams<OAuthLink>, 'url'> & {
   url: string;
 };
 
-const ELIGIBLE_HOSTNAMES = new Set(['t.me', 'telegram.me', 'telegram.dog']);
+const ELIGIBLE_HOSTNAMES = new Set([TME_HOSTNAME]);
 const MAX_BOT_START_PARAMETER_LENGTH = 64;
 // Up to nine decimals: a finer amount would round into one the link does not name
 const RE_GRAMS_AMOUNT = /^\d+(\.\d{1,9})?$/;
@@ -234,8 +236,12 @@ export function getUsernameFromDeepLink(url: string) {
   return undefined;
 }
 
+export function normalizeDmLink(link: string) {
+  return link.replace(RE_DM_LINK_PROTOCOL, 'tg:');
+}
+
 function parseDeepLink(url: string) {
-  const correctUrl = ensureProtocol(url);
+  const correctUrl = ensureProtocol(normalizeDmLink(url));
   if (!correctUrl) {
     return undefined;
   }

@@ -17,6 +17,9 @@ interface ImportMetaEnv {
   readonly TG_TELEGRAM_API_HASH?: string;
   readonly TG_TELEGRAM_API_ID?: string;
   readonly TG_TEST_SESSION?: string;
+  readonly TG_DC_HOST: string;
+  readonly TG_DC_MEDIA_HOST: string;
+  readonly TG_DC_PORT: string;
 }
 
 declare namespace React {

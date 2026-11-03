@@ -242,7 +242,7 @@ export class HttpConnection extends Connection {
     super(params);
     this.shouldLongPoll = true;
     this.socket = new HttpStream(this.disconnectCallback.bind(this));
-    this.href = HttpStream.getURL(this._ip, this._port, this._isTestServer, this._isPremium);
+    this.href = HttpStream.getURL(this._ip, this._port, this._isTestServer);
   }
 
   send(data: Uint8Array) {

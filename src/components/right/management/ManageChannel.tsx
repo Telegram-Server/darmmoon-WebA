@@ -10,7 +10,9 @@ import { ApiMediaFormat } from '../../../api/types';
 import { ManagementProgress, ManagementScreens } from '../../../types';
 
 import { getChatAvatarHash, getHasAdminRight, isChatChannel, isChatPublic } from '../../../global/helpers';
-import { selectChat, selectChatFullInfo, selectIsChatRestricted, selectTabState } from '../../../global/selectors';
+import {
+  selectChat, selectChatFullInfo, selectIsChatRestricted, selectTabState, selectTelesrvCanLeave,
+} from '../../../global/selectors';
 import { formatInteger } from '../../../util/textFormat';
 
 import useFlag from '../../../hooks/useFlag';
@@ -47,6 +49,7 @@ type StateProps = {
   availableReactions?: ApiAvailableReaction[];
   hasAutoTranslation?: boolean;
   canToggleAutoTranslation?: boolean;
+  canLeave: boolean;
 };
 
 const CHANNEL_TITLE_EMPTY = 'NewChannelTitleEmptyError';
@@ -66,6 +69,7 @@ const ManageChannel = ({
   onClose,
   hasAutoTranslation,
   canToggleAutoTranslation,
+  canLeave,
 }: OwnProps & StateProps) => {
   const {
     updateChat,
@@ -343,11 +347,13 @@ const ManageChannel = ({
             <span className="subtitle">{removedUsersCount}</span>
           </ListItem>
         </Island>
-        <Island>
-          <ListItem icon="delete" ripple destructive onClick={openDeleteDialog}>
-            {chat.isOwner ? lang('ChannelDelete') : lang('ChannelLeave')}
-          </ListItem>
-        </Island>
+        {canLeave && (
+          <Island>
+            <ListItem icon="delete" ripple destructive onClick={openDeleteDialog}>
+              {chat.isOwner ? lang('ChannelDelete') : lang('ChannelLeave')}
+            </ListItem>
+          </Island>
+        )}
       </div>
       <FloatingActionButton
         isShown={isProfileFieldsTouched}
@@ -390,6 +396,7 @@ export default memo(withGlobal<OwnProps>(
       availableReactions: global.reactions.availableReactions,
       hasAutoTranslation,
       canToggleAutoTranslation,
+      canLeave: selectTelesrvCanLeave(global, chatId),
     };
   },
   (global, { chatId }) => {

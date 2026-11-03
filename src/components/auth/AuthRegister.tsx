@@ -5,7 +5,9 @@ import type { GlobalState } from '../../global/types';
 
 import { pick } from '../../util/iteratees';
 
+import useHistoryBack from '../../hooks/useHistoryBack';
 import useLang from '../../hooks/useLang';
+import useLastCallback from '../../hooks/useLastCallback';
 
 import AvatarEditable from '../ui/AvatarEditable';
 import Button from '../ui/Button';
@@ -18,14 +20,26 @@ type StateProps = {
 const AuthRegister = ({
   auth,
 }: StateProps) => {
-  const { signUp, clearAuthErrorKey, uploadProfilePhoto } = getActions();
-  const { isLoading, errorKey } = auth;
+  const {
+    signUp, clearAuthErrorKey, uploadProfilePhoto, returnToAuthSignupPassword,
+  } = getActions();
+  const { isLoading, errorKey, isPasswordSignup } = auth;
 
   const lang = useLang();
   const [isButtonShown, setIsButtonShown] = useState(false);
   const [croppedFile, setCroppedFile] = useState<File | undefined>();
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
+
+  // After choosing a login password the user may go back to change it
+  useHistoryBack({
+    isActive: Boolean(isPasswordSignup),
+    onBack: returnToAuthSignupPassword,
+  });
+
+  const handleBack = useLastCallback(() => {
+    returnToAuthSignupPassword();
+  });
 
   const handleFirstNameChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     if (errorKey) {
@@ -56,6 +70,17 @@ const AuthRegister = ({
 
   return (
     <div id="auth-registration-form" className="custom-scroll">
+      {isPasswordSignup && (
+        <Button
+          size="smaller"
+          round
+          color="translucent"
+          className="auth-close"
+          iconName="arrow-left"
+          ariaLabel={lang('Back')}
+          onClick={handleBack}
+        />
+      )}
       <div className="auth-form">
         <form action="" method="post" onSubmit={handleSubmit}>
           <AvatarEditable onChange={setCroppedFile} />

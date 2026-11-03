@@ -161,11 +161,7 @@ export const DEFAULT_APP_CONFIG: ApiAppConfig = {
   bandwidthPremiumNotifyPeriod: 3600,
   bandwidthPremiumUploadSpeedup: 10,
   urlAuthDomains: [
-    'web.telegram.org',
-    'web.t.me',
-    'k.t.me',
-    'z.t.me',
-    'a.t.me',
+    'dmweba.cc',
   ],
   webAppAllowedProtocols: [
     'http',

@@ -13,6 +13,7 @@ import { selectSharedSettings } from '../../../global/selectors/sharedState';
 import { IS_TRANSLATION_SUPPORTED } from '../../../util/browser/windowEnvironment';
 import { copyTextToClipboard } from '../../../util/clipboard';
 import { getTranslationFn } from '../../../util/localization';
+import { getSuggestedLanguage } from '../../auth/helpers/getSuggestedLanguage';
 
 import useFlag from '../../../hooks/useFlag';
 import useHistoryBack from '../../../hooks/useHistoryBack';
@@ -106,7 +107,7 @@ const SettingsLanguage = ({
   const options = useMemo(() => {
     if (!languages) return undefined;
     const currentLangCode = (window.navigator.language || 'en').toLowerCase();
-    const shortLangCode = currentLangCode.substr(0, 2);
+    const suggestedLangCode = getSuggestedLanguage();
 
     return languages.map(({ langCode, nativeName, name }) => ({
       value: langCode,
@@ -114,7 +115,7 @@ const SettingsLanguage = ({
       subLabel: name,
       isLoading: langCode === selectedLanguage && isLoading,
     } satisfies ItemPickerOption)).sort((a) => {
-      return currentLangCode && (a.value === currentLangCode || a.value === shortLangCode) ? -1 : 0;
+      return currentLangCode && (a.value === currentLangCode || a.value === suggestedLangCode) ? -1 : 0;
     });
   }, [isLoading, languages, selectedLanguage]);
 

@@ -476,7 +476,7 @@
 "AuthSessionsViewLocationInfo" = "This location estimate is based on the IP address and may not always be accurate.";
 "AuthSessionsLogOutApplications" = "Disconnect All Websites";
 "AuthKeepSignedIn" = "Keep me signed in";
-"AuthTitle" = "Telegram";
+"AuthTitle" = "M-chat";
 "ClearOtherWebSessionsHelp" = "You can log in on websites that support signing in with Telegram.";
 "AreYouSureWebSessions" = "Are you sure you want to disconnect all websites where you logged in with Telegram?";
 "AutodownloadSizeLimitUpTo" = "up to {limit}";

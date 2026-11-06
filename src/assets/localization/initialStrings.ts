@@ -7,7 +7,7 @@ import type { LangKey } from '../../types/language';
 export default {
   "TestServer": "Test server",
   "PageTitleInactive": "[Inactive]",
-  "AuthTitle": "Telegram",
+  "AuthTitle": "M-chat",
   "AuthKeepSignedIn": "Keep me signed in",
   "Code": "Code",
   "Next": "Next",

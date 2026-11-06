@@ -1,5 +1,6 @@
 import type { ApiError, ApiPrivacySettings, ApiUsername } from '../../../api/types';
-import type { ActionReturnType } from '../../types';
+import type { RequiredGlobalActions } from '../../index';
+import type { ActionReturnType, GlobalState } from '../../types';
 import {
   LeftColumnContent,
   ProfileEditProgress,
@@ -15,7 +16,9 @@ import {
   UNMUTE_TIMESTAMP,
 } from '../../../config';
 import { signalUnknownPasskey, toCredentialCreationOptions } from '../../../util/browser/passkeys';
+import { IS_MOBILE } from '../../../util/browser/windowEnvironment';
 import { getCurrentTabId } from '../../../util/establishMultitabRole';
+import { checkIsFirstAccountLogin, storeGuestLoginHint } from '../../../util/guestLogin';
 import { buildCollectionByKey } from '../../../util/iteratees';
 import { changeLanguage, getTranslationFn } from '../../../util/localization';
 import { requestPermission, subscribe, unsubscribe } from '../../../util/notifications';
@@ -30,6 +33,7 @@ import {
   removeBlockedUser, replacePersonalChannelIds, replaceSettings, updateChat,
   updateNotifyDefaults, updateSharedSettings, updateUser, updateUserFullInfo,
 } from '../../reducers';
+import { updateAuth } from '../../reducers/auth';
 import { updateTabState } from '../../reducers/tabs';
 import {
   selectChat, selectIsCurrentUserFrozen,
@@ -768,7 +772,42 @@ addActionHandler('loadAppConfig', async (global, actions, payload): Promise<void
     isAppConfigLoaded: true,
   };
   setGlobal(global);
+
+  const isGuestLoginAvailable = Boolean(appConfig.isGuestLoginAvailable);
+  storeGuestLoginHint(isGuestLoginAvailable);
+  if (global.auth.state !== 'authorizationStateReady') {
+    updateAuthGuestPage(global, actions, isGuestLoginAvailable);
+  }
 });
+
+// A changed guest login switch moves the user between the guest page and the default login page
+function updateAuthGuestPage<T extends GlobalState>(
+  global: T, actions: RequiredGlobalActions, isGuestLoginAvailable: boolean,
+) {
+  const {
+    isGuestPageFirst, isGuestPage, isGuestSignIn, state,
+  } = global.auth;
+  // The pending guest sign-in settles the page itself
+  if (isGuestSignIn) return;
+
+  if (!isGuestLoginAvailable && isGuestPageFirst) {
+    global = updateAuth(global, { isGuestPageFirst: false, isGuestPage: false });
+    setGlobal(global);
+
+    // The guest page waits for the phone number, which is the default page on mobile only
+    if (isGuestPage && !IS_MOBILE && state === 'authorizationStateWaitPhoneNumber') {
+      actions.goToAuthQrCode();
+    }
+    return;
+  }
+
+  // The phone number page then opens the guest page unless a number is typed
+  if (isGuestLoginAvailable && isGuestPageFirst === false && state === 'authorizationStateWaitPhoneNumber'
+    && checkIsFirstAccountLogin()) {
+    global = updateAuth(global, { isGuestPageFirst: true });
+    setGlobal(global);
+  }
+}
 
 addActionHandler('loadConfig', async (global): Promise<void> => {
   const config = await callApi('fetchConfig');

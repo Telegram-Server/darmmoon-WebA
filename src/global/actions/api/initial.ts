@@ -17,6 +17,7 @@ import {
 import * as cacheApi from '../../../util/cacheApi';
 import { DEVICE_ID_SOURCE_KEY, getDeviceId } from '../../../util/deviceId';
 import { getCurrentTabId } from '../../../util/establishMultitabRole';
+import { checkIsFirstAccountLogin, getGuestLoginHint } from '../../../util/guestLogin';
 import {
   ACCOUNT_SLOT, getAccountsInfo, getAccountSlotUrl, getFirstLoggedInAccountSlot,
 } from '../../../util/multiaccount';
@@ -52,7 +53,7 @@ import {
   updateManagementProgress,
 } from '../../reducers';
 import { updateAuth } from '../../reducers/auth';
-import { selectTabState } from '../../selectors';
+import { selectIsTelesrvCodeLoginDisabled, selectTabState } from '../../selectors';
 import { selectSharedSettings } from '../../selectors/sharedState';
 import { destroySharedStatePort, resetSharedStatePort } from '../../shared/sharedStateConnector';
 
@@ -95,6 +96,14 @@ addActionHandler('initApi', async (global, actions): Promise<void> => {
       .map(({ userId }) => userId)
       .filter(Boolean);
 
+    // A reconnect keeps the current login page
+    if (global.auth.isGuestPageFirst === undefined && !token && !hasStoredSession()) {
+      // Without a hint the guest page is shown until the app config tells otherwise
+      const isGuestPageFirst = checkIsFirstAccountLogin() && getGuestLoginHint() !== false;
+      global = updateAuth(global, { isGuestPageFirst, isGuestPage: isGuestPageFirst });
+      setGlobal(global);
+    }
+
     void initApi(actions.apiUpdate, {
       userAgent: navigator.userAgent,
       platform: PLATFORM_ENV,
@@ -112,6 +121,7 @@ addActionHandler('initApi', async (global, actions): Promise<void> => {
       accountIds,
       hasPasskeySupport: IS_WEBAUTHN_SUPPORTED,
       deviceId: await getDeviceId(),
+      shouldStartWithPhoneNumber: global.auth.isGuestPage,
     });
 
     void setShouldEnableDebugLog(Boolean(shouldCollectDebugLogs));
@@ -122,7 +132,8 @@ addActionHandler('initApi', async (global, actions): Promise<void> => {
 
 addActionHandler('setAuthPhoneNumber', (global, actions, payload): ActionReturnType => {
   const { phoneNumber } = payload;
-  const isPasswordLogin = global.auth.isPasswordLogin && global.appConfig.isPasswordLoginAvailable;
+  const isPasswordLogin = Boolean(global.appConfig.isPasswordLoginAvailable
+    && (global.auth.isPasswordLogin || selectIsTelesrvCodeLoginDisabled(global)));
 
   void callApi('provideAuthPhoneNumber', phoneNumber.replace(/[^\d]/g, ''), isPasswordLogin);
 
@@ -232,10 +243,53 @@ addActionHandler('switchAuthToCode', (global): ActionReturnType => {
 });
 
 addActionHandler('goToAuthQrCode', (global): ActionReturnType => {
+  // The guest page can be shown over the QR code wait
+  if (global.auth.state === 'authorizationStateWaitQrCode') {
+    return updateAuth(global, { isGuestPage: false });
+  }
+
   void callApi('restartAuthWithQr');
 
   return updateAuth(global, {
+    isGuestPage: false,
     isLoadingQrCode: true,
+    errorKey: undefined,
+  });
+});
+
+addActionHandler('goToAuthPhoneNumber', (global, actions, payload): ActionReturnType => {
+  if (global.auth.state === 'authorizationStateWaitQrCode') {
+    void callApi('restartAuth');
+  }
+
+  return updateAuth(global, {
+    isGuestPage: false,
+    isPasswordLogin: payload.isPasswordLogin,
+    errorKey: undefined,
+  });
+});
+
+addActionHandler('returnToAuthGuestPage', (global): ActionReturnType => {
+  // The QR code token polling is not needed under the guest page
+  if (global.auth.state === 'authorizationStateWaitQrCode') {
+    void callApi('restartAuth');
+  }
+
+  return updateAuth(global, {
+    isGuestPage: true,
+    isPasswordLogin: undefined,
+    errorKey: undefined,
+  });
+});
+
+addActionHandler('signInAsGuest', (global): ActionReturnType => {
+  if (global.auth.isLoading) return undefined;
+
+  void callApi('restartAuthAsGuest');
+
+  return updateAuth(global, {
+    isGuestSignIn: true,
+    isLoading: true,
     errorKey: undefined,
   });
 });

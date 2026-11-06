@@ -11,8 +11,10 @@ import type {
 import type { RequiredGlobalActions } from '../../index';
 import type { ActionReturnType, GlobalState } from '../../types';
 
+import { IS_MOBILE } from '../../../util/browser/windowEnvironment';
 import { getCurrentTabId } from '../../../util/establishMultitabRole';
 import { getShippingError, shouldClosePaymentModal } from '../../../util/getReadableErrorText';
+import { storeGuestLoginHint } from '../../../util/guestLogin';
 import { retryLocalization } from '../../../util/localization';
 import { getAccountsInfo, getAccountSlotUrl } from '../../../util/multiaccount';
 import { setServerTimeOffset } from '../../../util/serverTime';
@@ -30,7 +32,7 @@ import {
 import { updateUser, updateUserFullInfo } from '../../reducers';
 import { updateAuth } from '../../reducers/auth';
 import { updateTabState } from '../../reducers/tabs';
-import { selectTabState } from '../../selectors';
+import { selectIsTelesrvCodeLoginDisabled, selectTabState } from '../../selectors';
 import { selectSharedSettings } from '../../selectors/sharedState';
 
 const TELESRV_PERMISSION_REFRESH_TIMEOUT = 10000;
@@ -38,6 +40,7 @@ const TELESRV_PERMISSION_REFRESH_TIMEOUT = 10000;
 const NOTIFICATION_AUTH_ERRORS = new Set([
   'PASSKEY_CREDENTIAL_NOT_FOUND', 'AUTHORIZATIONS_TOO_MUCH', 'DEVICE_ID_REQUIRED',
 ]);
+const UNEXPECTED_ERROR_KEYS = new Set(['ErrorUnexpected', 'ErrorUnexpectedMessage']);
 
 let lastTelesrvPermissionRefreshAt = 0;
 
@@ -165,6 +168,19 @@ function onUpdateAuthorizationState<T extends GlobalState>(global: T, update: Ap
   setGlobal(global);
   global = getGlobal();
 
+  if (authState === 'authorizationStateWaitPhoneNumber' || authState === 'authorizationStateWaitQrCode') {
+    // The flow waits here again after a failed guest sign-in
+    global = updateAuth(global, {
+      isGuestSignIn: undefined,
+    });
+    setGlobal(global);
+
+    // The app config tells which login methods the server offers
+    if (!global.isAppConfigLoaded) {
+      getActions().loadAppConfig();
+    }
+  }
+
   switch (authState) {
     case 'authorizationStateLoggingOut':
       void forceWebsync(false);
@@ -213,8 +229,17 @@ function onUpdateAuthorizationState<T extends GlobalState>(global: T, update: Ap
 
       void forceWebsync(true);
 
+      if (global.auth.isGuestSignIn && global.appConfig.isPasswordLoginAvailable) {
+        global = updateTabState(global, {
+          isGuestPasswordReminderPending: true,
+        }, getCurrentTabId());
+      }
+
       global = updateAuth(global, {
         isLoggingOut: false,
+        isGuestPageFirst: undefined,
+        isGuestPage: undefined,
+        isGuestSignIn: undefined,
       });
       Object.values(global.byTabId).forEach(({ id: tabId }) => {
         global = updateTabState(global, {
@@ -237,20 +262,61 @@ function onUpdateAuthorizationError<T extends GlobalState>(global: T, update: Ap
     return;
   }
 
+  if (update.errorCode === 'GUEST_LOGIN_DISABLED') {
+    onGuestLoginDisabled(global, update);
+    return;
+  }
+
   const isPasswordLoginUnavailable = update.errorCode === 'PASSWORD_LOGIN_DISABLED';
-  if (isPasswordLoginUnavailable || update.errorCode === 'PASSWORD_LOGIN_NOT_SET') {
+  const isCodeLoginUnavailable = update.errorCode === 'CODE_LOGIN_DISABLED';
+  const isCodeLoginDisabled = selectIsTelesrvCodeLoginDisabled(global);
+  // Without login codes an account with no login password can only get one from the administrator
+  const isPasswordMissingForGood = update.errorCode === 'PASSWORD_LOGIN_NOT_SET' && isCodeLoginDisabled;
+
+  if (isPasswordLoginUnavailable || (update.errorCode === 'PASSWORD_LOGIN_NOT_SET' && !isCodeLoginDisabled)) {
     global = updateAuth(global, {
       isPasswordLogin: false,
     });
+  } else if (isCodeLoginUnavailable) {
+    global = updateAuth(global, {
+      isPasswordLogin: true,
+    });
   }
 
+  const isUnexpectedGuestError = global.auth.isGuestSignIn && UNEXPECTED_ERROR_KEYS.has(update.errorKey.key);
+
   global = updateAuth(global, {
-    errorKey: update.errorKey,
+    errorKey: isPasswordMissingForGood ? { key: 'TelesrvNoLoginPasswordContactAdmin' }
+      : isUnexpectedGuestError ? { key: 'TelesrvLoginFailed' } : update.errorKey,
   });
   setGlobal(global);
 
-  if (isPasswordLoginUnavailable) {
+  // The cached switches are stale
+  if (isPasswordLoginUnavailable || isCodeLoginUnavailable || update.errorCode === 'SIGN_UP_DISABLED') {
     getActions().loadAppConfig();
+  }
+}
+
+// The default login page replaces the guest page, which this server no longer offers
+function onGuestLoginDisabled<T extends GlobalState>(global: T, update: ApiUpdateAuthorizationError) {
+  const actions = getActions();
+
+  storeGuestLoginHint(false);
+  global = updateAuth(global, {
+    isGuestPageFirst: false,
+    isGuestPage: false,
+  });
+  setGlobal(global);
+
+  actions.showNotification({
+    message: update.errorKey,
+    tabId: getCurrentTabId(),
+  });
+  actions.loadAppConfig();
+
+  // The failed guest sign-in returns the flow to the phone number wait
+  if (!IS_MOBILE) {
+    actions.goToAuthQrCode();
   }
 }
 

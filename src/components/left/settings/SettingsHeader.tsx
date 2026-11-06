@@ -334,6 +334,19 @@ const SettingsHeader = ({
       case SettingsScreens.Passkeys:
         return <h3>{lang('SettingsPasskeyTitle')}</h3>;
 
+      case SettingsScreens.TelesrvLoginPassword:
+      case SettingsScreens.TelesrvLoginPasswordSetConfirm:
+        return <h3>{lang('TelesrvLoginPassword')}</h3>;
+      case SettingsScreens.TelesrvLoginPasswordChangeCurrent:
+      case SettingsScreens.TelesrvLoginPasswordChangeNew:
+      case SettingsScreens.TelesrvLoginPasswordChangeConfirm:
+        return <h3>{lang('TelesrvLoginPasswordChange')}</h3>;
+      case SettingsScreens.TelesrvLoginPasswordRemove:
+        return <h3>{lang('TelesrvLoginPasswordRemove')}</h3>;
+      case SettingsScreens.TelesrvLoginPasswordResetNew:
+      case SettingsScreens.TelesrvLoginPasswordResetConfirm:
+        return <h3>{lang('TelesrvLoginPasswordReset')}</h3>;
+
       default:
         return (
           <div className="settings-main-header">

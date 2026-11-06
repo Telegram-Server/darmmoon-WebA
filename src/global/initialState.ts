@@ -121,6 +121,7 @@ export const INITIAL_GLOBAL_STATE: GlobalState = {
   attachMenu: { bots: {} },
   passcode: {},
   twoFaSettings: {},
+  telesrvLoginPassword: {},
   isAppUpdateAvailable: false,
   shouldShowContextMenuHint: true,
   appConfig: DEFAULT_APP_CONFIG,

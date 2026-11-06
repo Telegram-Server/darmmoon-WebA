@@ -176,6 +176,12 @@ export const SETTINGS_SEARCH_SECTIONS: SettingsSearchSection[] = [
     screenWhen: { flag: 'hasPasscode', screen: SettingsScreens.PasscodeEnabled },
   },
   {
+    screen: SettingsScreens.TelesrvLoginPassword,
+    parent: SettingsScreens.Privacy,
+    titleKey: 'TelesrvLoginPassword',
+    requires: 'isPasswordLoginAvailable',
+  },
+  {
     screen: SettingsScreens.TwoFaDisabled,
     parent: SettingsScreens.Privacy,
     titleKey: 'TwoStepVerification',
@@ -397,6 +403,9 @@ export const SETTINGS_SEARCH_ENTRIES: SettingsSearchEntry[] = [
   ...buildEntries(SettingsScreens.TwoFaEnabled, ['ChangePassword', 'TurnPasswordOff', 'SetRecoveryEmail'], {
     requires: 'hasPassword',
   }),
+  ...buildEntries(SettingsScreens.TelesrvLoginPassword, [
+    'TelesrvLoginPasswordChange', 'TelesrvLoginPasswordRemove', 'TelesrvLoginPasswordForgot',
+  ], { requires: 'hasTelesrvLoginPassword' }),
   ...buildEntries(SettingsScreens.PasscodeEnabled, [
     'PasscodeChange', 'PasscodeTurnOff', 'PasscodeLockScreenTitle', 'PasscodeKeepBackground', 'PasscodeAutoLockTitle',
     'PasscodeAutoLockDisabled', 'PasscodeAutoLock1Min', 'PasscodeAutoLock5Min', 'PasscodeAutoLock30Min',

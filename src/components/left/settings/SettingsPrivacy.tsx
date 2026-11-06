@@ -1,5 +1,5 @@
 import { memo, useEffect, useMemo } from '../../../lib/teact/teact';
-import { getActions, withGlobal } from '../../../global';
+import { getActions, getGlobal, withGlobal } from '../../../global';
 
 import type { ApiPrivacySettings } from '../../../api/types';
 import type { GlobalState } from '../../../global/types';
@@ -50,6 +50,8 @@ type StateProps = {
   defaultHistoryTtl?: number;
   passkeyCount?: number;
   arePasskeysAvailable?: boolean;
+  isPasswordLoginAvailable?: boolean;
+  hasTelesrvLoginPassword?: boolean;
 };
 
 const DAYS_PER_MONTH = 30;
@@ -63,6 +65,8 @@ const SettingsPrivacy = ({
   webAuthCount,
   passkeyCount,
   arePasskeysAvailable,
+  isPasswordLoginAvailable,
+  hasTelesrvLoginPassword,
   isSensitiveEnabled,
   canChangeSensitive,
   canDisplayAutoarchiveSetting,
@@ -93,6 +97,8 @@ const SettingsPrivacy = ({
     openAgeVerificationModal,
     loadPasskeys,
     openPasskeyModal,
+    loadAppConfig,
+    loadTelesrvLoginPassword,
   } = getActions();
 
   useEffect(() => {
@@ -111,6 +117,19 @@ const SettingsPrivacy = ({
       loadAccountDaysTtl();
     }
   }, [isActive, isCurrentUserFrozen]);
+
+  // The login password row depends on the server's `password_login` feature
+  useEffect(() => {
+    if (isActive) {
+      loadAppConfig({ hash: getGlobal().appConfig.hash });
+    }
+  }, [isActive]);
+
+  useEffect(() => {
+    if (isActive && isPasswordLoginAvailable && !isCurrentUserFrozen) {
+      loadTelesrvLoginPassword();
+    }
+  }, [isActive, isPasswordLoginAvailable, isCurrentUserFrozen]);
 
   const lang = useLang();
   const defaultHistoryTtlText = defaultHistoryTtl === undefined
@@ -234,6 +253,22 @@ const SettingsPrivacy = ({
               <span className="title">{lang('Passcode')}</span>
               <span className="subtitle" dir="auto">
                 {lang(hasPasscode ? 'SettingsItemPrivacyOn' : 'SettingsItemPrivacyOff')}
+              </span>
+            </div>
+          </ListItem>
+        )}
+        {isPasswordLoginAvailable && (
+          <ListItem
+            icon="key-filled"
+            iconBg="pink"
+            narrow
+            onClick={() => openSettingsScreen({ screen: SettingsScreens.TelesrvLoginPassword })}
+          >
+            <div className="multiline-item">
+              <span className="title">{lang('TelesrvLoginPassword')}</span>
+              <span className="subtitle" dir="auto">
+                {lang(hasTelesrvLoginPassword === undefined ? 'Loading'
+                  : hasTelesrvLoginPassword ? 'SettingsItemPrivacyOn' : 'SettingsItemPrivacyOff')}
               </span>
             </div>
           </ListItem>
@@ -569,6 +604,8 @@ export default memo(withGlobal<OwnProps>(
       defaultHistoryTtl,
       passkeyCount: passkeys?.length,
       arePasskeysAvailable: appConfig.arePasskeysAvailable,
+      isPasswordLoginAvailable: appConfig.isPasswordLoginAvailable,
+      hasTelesrvLoginPassword: global.telesrvLoginPassword.hasPassword,
     };
   },
 )(SettingsPrivacy));

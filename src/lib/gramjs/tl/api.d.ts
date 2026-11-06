@@ -33987,6 +33987,15 @@ namespace Api {
       current: Api.TypeInputCheckPasswordSRP;
       newSettings: account.TypePasswordInputSettings;
     }
+    export class SignUpAsGuest extends Request<{
+      // flags: Api.Type;
+      firstName?: string;
+      lastName?: string;
+    } | void, auth.TypeAuthorization> {
+      // flags: Api.Type;
+      firstName?: string;
+      lastName?: string;
+    }
   }
 
   export type AnyRequest = InvokeAfterMsg | InvokeAfterMsgs | InitConnection | InvokeWithLayer | InvokeWithoutUpdates | InvokeWithMessagesRange | InvokeWithTakeout | InvokeWithBusinessConnection | InvokeWithGooglePlayIntegrity | InvokeWithApnsSecret | InvokeWithReCaptcha | ReqPq | ReqPqMulti | ReqDHParams | SetClientDHParams | DestroyAuthKey | RpcDropAnswer | GetFutureSalts | Ping | PingDelayDisconnect | DestroySession
@@ -34017,6 +34026,6 @@ namespace Api {
     | ephemeral.SendMessage | ephemeral.DeleteMessage | ephemeral.ReportMessage | ephemeral.GetCallbackAnswer | ephemeral.EditMessage | ephemeral.DeleteWelcomeMessage | ephemeral.DeleteAllWelcomeMessages | ephemeral.GetWelcomeMessages
     | toncenter.PerformApiRequest | toncenter.GetStreamingUrl
     | wallet.GetState | wallet.GetUserAddresses | wallet.GetTransactions | wallet.GetTransactionsByIDs | wallet.GetTransactionsByMsgHash | wallet.ExportSecretPhrase | wallet.FetchEncryptedSecretPhrasePart | wallet.ReplaceWallet | wallet.DisableBackup | wallet.GetBackupHolderDcs | wallet.EnableBackup | wallet.GetProofChallenge | wallet.SendTransfer | wallet.GetGaslessInfo | wallet.GetExistingWaltBalance | wallet.GetNfts | wallet.TonConnectCreateSession | wallet.TonConnectRegisterKey | wallet.TonConnectSubmitConnectResult | wallet.TonConnectGetPending | wallet.TonConnectClaimRequest | wallet.TonConnectSubmitResponse | wallet.TonConnectNextEventId | wallet.TonConnectCloseSession | wallet.TonConnectGetSessions | wallet.SetCardStickers
-    | telesrv.GetLoginPassword | telesrv.SignInWithPassword | telesrv.SignUpWithPassword | telesrv.GetMyLoginPassword | telesrv.UpdateLoginPassword;
+    | telesrv.GetLoginPassword | telesrv.SignInWithPassword | telesrv.SignUpWithPassword | telesrv.GetMyLoginPassword | telesrv.UpdateLoginPassword | telesrv.SignUpAsGuest;
 
 }

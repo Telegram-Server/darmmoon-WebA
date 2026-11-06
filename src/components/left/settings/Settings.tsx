@@ -6,6 +6,7 @@ import { getActions, getGlobal } from '../../../global';
 import type { FolderEditDispatch, FoldersState } from '../../../hooks/reducers/useFoldersReducer';
 import type { AnimationLevel, SettingsHighlight } from '../../../types';
 import type { SettingsSearchItem } from './search/searchSettings';
+import type { TelesrvLoginPasswordDraft } from './telesrvLoginPassword/SettingsTelesrvLoginPassword';
 import { SettingsScreens } from '../../../types';
 
 import { selectTabState } from '../../../global/selectors';
@@ -45,6 +46,7 @@ import SettingsPrivacyVisibility from './SettingsPrivacyVisibility';
 import SettingsPrivacyVisibilityExceptionList from './SettingsPrivacyVisibilityExceptionList';
 import SettingsQuickReaction from './SettingsQuickReaction';
 import SettingsStickers from './SettingsStickers';
+import SettingsTelesrvLoginPassword from './telesrvLoginPassword/SettingsTelesrvLoginPassword';
 import SettingsTwoFa from './twoFa/SettingsTwoFa';
 
 import './Settings.scss';
@@ -69,6 +71,17 @@ const TWO_FA_SCREENS = [
   SettingsScreens.TwoFaRecoveryEmailCurrentPassword,
   SettingsScreens.TwoFaRecoveryEmail,
   SettingsScreens.TwoFaRecoveryEmailCode,
+];
+
+const TELESRV_LOGIN_PASSWORD_SCREENS = [
+  SettingsScreens.TelesrvLoginPassword,
+  SettingsScreens.TelesrvLoginPasswordSetConfirm,
+  SettingsScreens.TelesrvLoginPasswordChangeCurrent,
+  SettingsScreens.TelesrvLoginPasswordChangeNew,
+  SettingsScreens.TelesrvLoginPasswordChangeConfirm,
+  SettingsScreens.TelesrvLoginPasswordRemove,
+  SettingsScreens.TelesrvLoginPasswordResetNew,
+  SettingsScreens.TelesrvLoginPasswordResetConfirm,
 ];
 
 const PASSCODE_SCREENS = [
@@ -205,6 +218,7 @@ const Settings = ({
 
   const [twoFaState, twoFaDispatch] = useTwoFaReducer();
   const [privacyPasscode, setPrivacyPasscode] = useState<string>('');
+  const [telesrvLoginPasswordDraft, setTelesrvLoginPasswordDraft] = useState<TelesrvLoginPasswordDraft>({});
 
   useScrollNotch({
     containerRef,
@@ -281,10 +295,12 @@ const Settings = ({
 
     const isTwoFaScreen = TWO_FA_SCREENS.includes(activeScreen);
     const isPasscodeScreen = PASSCODE_SCREENS.includes(activeScreen);
+    const isTelesrvLoginPasswordScreen = TELESRV_LOGIN_PASSWORD_SCREENS.includes(activeScreen);
     const isFoldersScreen = FOLDERS_SCREENS.includes(activeScreen);
     const isPrivacyScreen = PRIVACY_SCREENS.includes(activeScreen)
       || isTwoFaScreen
       || isPasscodeScreen
+      || isTelesrvLoginPasswordScreen
       || Object.keys(privacyAllowScreens).map(Number).includes(activeScreen)
       || Object.values(privacyAllowScreens).includes(true);
 
@@ -544,6 +560,25 @@ const Settings = ({
             onSetPasscode={setPrivacyPasscode}
             shownScreen={activeScreen}
             isActive={isScreenActive}
+            onReset={handleReset}
+          />
+        );
+
+      case SettingsScreens.TelesrvLoginPassword:
+      case SettingsScreens.TelesrvLoginPasswordSetConfirm:
+      case SettingsScreens.TelesrvLoginPasswordChangeCurrent:
+      case SettingsScreens.TelesrvLoginPasswordChangeNew:
+      case SettingsScreens.TelesrvLoginPasswordChangeConfirm:
+      case SettingsScreens.TelesrvLoginPasswordRemove:
+      case SettingsScreens.TelesrvLoginPasswordResetNew:
+      case SettingsScreens.TelesrvLoginPasswordResetConfirm:
+        return (
+          <SettingsTelesrvLoginPassword
+            currentScreen={currentScreen}
+            shownScreen={activeScreen}
+            draft={telesrvLoginPasswordDraft}
+            isActive={isScreenActive}
+            onDraftChange={setTelesrvLoginPasswordDraft}
             onReset={handleReset}
           />
         );

@@ -12,3 +12,16 @@ export function updateTwoFaSettings<T extends GlobalState>(
     },
   };
 }
+
+export function updateTelesrvLoginPassword<T extends GlobalState>(
+  global: T,
+  update: GlobalState['telesrvLoginPassword'],
+): T {
+  return {
+    ...global,
+    telesrvLoginPassword: {
+      ...global.telesrvLoginPassword,
+      ...update,
+    },
+  };
+}

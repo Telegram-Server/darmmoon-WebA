@@ -3,6 +3,7 @@ import { getActions, withGlobal } from '../../global';
 
 import type { GlobalState } from '../../global/types';
 
+import { selectIsTelesrvCodeLoginDisabled } from '../../global/selectors';
 import { pick } from '../../util/iteratees';
 
 import useHistoryBack from '../../hooks/useHistoryBack';
@@ -16,10 +17,12 @@ import Button from '../ui/Button';
 
 type StateProps = {
   auth: GlobalState['auth'];
+  isCodeLoginDisabled: boolean;
 };
 
 const AuthLoginPassword = ({
   auth,
+  isCodeLoginDisabled,
 }: StateProps) => {
   const {
     setAuthPassword, clearAuthErrorKey, returnToAuthPhoneNumber, switchAuthToCode,
@@ -66,23 +69,26 @@ const AuthLoginPassword = ({
         <p className="note">{lang('AuthLoginPasswordDesc')}</p>
         <PasswordForm
           error={errorKey && lang.withRegular(errorKey)}
-          placeholder={lang('AuthLoginPasswordField')}
+          placeholder={lang('TelesrvLoginPassword')}
           isLoading={isLoading}
           isPasswordVisible={isPasswordVisible}
           onClearError={clearAuthErrorKey}
           onChangePasswordVisibility={setIsPasswordVisible}
           onSubmit={handleSubmit}
         />
-        <Button className="auth-button" isText disabled={isLoading} onClick={handleSwitchToCode}>
-          {lang('AuthLoginPasswordToCode')}
-        </Button>
+        {!isCodeLoginDisabled && (
+          <Button className="auth-button" isText disabled={isLoading} onClick={handleSwitchToCode}>
+            {lang('TelesrvLoginUseCode')}
+          </Button>
+        )}
       </div>
     </div>
   );
 };
 
 export default memo(withGlobal(
-  (global): Complete<StateProps> => (
-    pick(global, ['auth'])
-  ),
+  (global): Complete<StateProps> => ({
+    ...pick(global, ['auth']),
+    isCodeLoginDisabled: selectIsTelesrvCodeLoginDisabled(global),
+  }),
 )(AuthLoginPassword));

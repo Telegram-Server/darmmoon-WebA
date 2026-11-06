@@ -150,6 +150,12 @@ export type GlobalState = {
     waitingEmailCodeLength?: number;
   };
 
+  telesrvLoginPassword: {
+    hasPassword?: boolean;
+    isLoading?: boolean;
+    isCurrentPasswordInvalid?: boolean;
+  };
+
   attachmentSettings: {
     shouldCompress: boolean;
     defaultAttachmentCompression: AttachmentCompression;
@@ -194,6 +200,11 @@ export type GlobalState = {
     passkeyOption?: ApiPasskeyOption;
     isPasswordLogin?: boolean;
     isPasswordSignup?: boolean;
+    // The guest page is the first login page, so the phone number and QR code pages return to it
+    isGuestPageFirst?: boolean;
+    isGuestPage?: boolean;
+    // A guest sign-in is in progress, including its two-step verification
+    isGuestSignIn?: boolean;
 
     hasWebAuthTokenFailed?: true;
     hasWebAuthTokenPasswordRequired?: true;

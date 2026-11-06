@@ -1,5 +1,5 @@
 import {
-  PasskeyLoginRequestedError, PasswordLoginRequestedError, UserAlreadyAuthorizedError,
+  GuestLoginRequestedError, PasskeyLoginRequestedError, PasswordLoginRequestedError, UserAlreadyAuthorizedError,
 } from '../../../lib/gramjs/errors';
 
 import type {
@@ -214,4 +214,12 @@ export function restartAuthWithPasskey(credentialJson: AuthenticationResponseJSO
   }
 
   authController.reject(new PasskeyLoginRequestedError(credentialJson));
+}
+
+export function restartAuthAsGuest() {
+  if (!authController.reject) {
+    return;
+  }
+
+  authController.reject(new GuestLoginRequestedError());
 }

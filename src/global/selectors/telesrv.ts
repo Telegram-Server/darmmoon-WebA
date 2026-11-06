@@ -5,6 +5,11 @@ import type { GlobalState } from '../types';
 import { isUserId } from '../../util/entities/ids';
 import { isChatChannel } from '../helpers';
 
+// The server turns code login off only while password login is on, so password login is then the only phone login
+export function selectIsTelesrvCodeLoginDisabled<T extends GlobalState>(global: T) {
+  return Boolean(global.appConfig.isPasswordLoginAvailable && global.appConfig.isCodeLoginDisabled);
+}
+
 export function selectTelesrvAllows<T extends GlobalState>(global: T, action: ApiTelesrvAction) {
   return !global.appConfig.telesrvPermissions?.forbiddenActions.includes(action);
 }

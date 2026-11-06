@@ -311,7 +311,17 @@ export enum SettingsScreens {
   DoNotTranslate,
   FoldersShare,
   Passkeys,
+  TelesrvLoginPassword,
+  TelesrvLoginPasswordSetConfirm,
+  TelesrvLoginPasswordChangeCurrent,
+  TelesrvLoginPasswordChangeNew,
+  TelesrvLoginPasswordChangeConfirm,
+  TelesrvLoginPasswordRemove,
+  TelesrvLoginPasswordResetNew,
+  TelesrvLoginPasswordResetConfirm,
 }
+
+export type TelesrvLoginPasswordMode = 'set' | 'change' | 'remove' | 'reset';
 
 export type StickerSetOrReactionsSetOrRecent = Pick<ApiStickerSet, (
   'id' | 'accessHash' | 'title' | 'count' | 'stickers' | 'isEmoji' | 'installedDate' | 'isArchived' |

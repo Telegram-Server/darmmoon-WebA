@@ -3380,23 +3380,57 @@ export interface LangPair {
   'TelesrvSendRestricted': undefined;
   'TelesrvSendWhitelistRestricted': undefined;
   'TelesrvJoinRestricted': undefined;
-  'AuthLoginWithPassword': undefined;
-  'AuthLoginWithCode': undefined;
   'AuthPasswordLoginDesc': undefined;
   'AuthLoginPasswordDesc': undefined;
-  'AuthLoginPasswordField': undefined;
-  'AuthLoginPasswordToCode': undefined;
-  'AuthSignupPasswordTitle': undefined;
-  'AuthSignupPasswordDesc': undefined;
-  'AuthSignupPasswordField': undefined;
-  'AuthSignupPasswordRepeat': undefined;
   'ErrorSignupPasswordsDiffer': undefined;
-  'ErrorPasswordLoginNotSet': undefined;
-  'ErrorPasswordLoginUnavailable': undefined;
-  'ErrorSignUpClosed': undefined;
   'ErrorSignupPasswordOccupied': undefined;
   'ErrorDeviceLimitReached': undefined;
   'ErrorDeviceIdRequired': undefined;
+  'TelesrvGuestContinue': undefined;
+  'TelesrvGuestDisabled': undefined;
+  'TelesrvGuestIpUnavailable': undefined;
+  'TelesrvGuestPasswordLater': undefined;
+  'TelesrvGuestPasswordSet': undefined;
+  'TelesrvGuestPasswordText': undefined;
+  'TelesrvGuestPasswordTitle': undefined;
+  'TelesrvGuestPoolExhausted': undefined;
+  'TelesrvGuestText': undefined;
+  'TelesrvGuestUseCode': undefined;
+  'TelesrvGuestUsePassword': undefined;
+  'TelesrvLoginFailed': undefined;
+  'TelesrvLoginPassword': undefined;
+  'TelesrvLoginPasswordChange': undefined;
+  'TelesrvLoginPasswordChangeDone': undefined;
+  'TelesrvLoginPasswordChangeInfo': undefined;
+  'TelesrvLoginPasswordChangedElsewhere': undefined;
+  'TelesrvLoginPasswordCurrent': undefined;
+  'TelesrvLoginPasswordDisabled': undefined;
+  'TelesrvLoginPasswordFailed': undefined;
+  'TelesrvLoginPasswordForgot': undefined;
+  'TelesrvLoginPasswordForgotInfo': undefined;
+  'TelesrvLoginPasswordNew': undefined;
+  'TelesrvLoginPasswordOnInfo': undefined;
+  'TelesrvLoginPasswordOnTitle': undefined;
+  'TelesrvLoginPasswordRemove': undefined;
+  'TelesrvLoginPasswordRemoveDone': undefined;
+  'TelesrvLoginPasswordRemoveInfo': undefined;
+  'TelesrvLoginPasswordReset': undefined;
+  'TelesrvLoginPasswordResetDone': undefined;
+  'TelesrvLoginPasswordResetInfo': undefined;
+  'TelesrvLoginPasswordResetUnavailable': undefined;
+  'TelesrvLoginPasswordResetUnavailableNoCode': undefined;
+  'TelesrvLoginPasswordRetry': undefined;
+  'TelesrvLoginPasswordSame': undefined;
+  'TelesrvLoginPasswordSet': undefined;
+  'TelesrvLoginPasswordSetDone': undefined;
+  'TelesrvLoginPasswordSetInfo': undefined;
+  'TelesrvLoginPasswordSetTitle': undefined;
+  'TelesrvLoginUseCode': undefined;
+  'TelesrvNoLoginPasswordText': undefined;
+  'TelesrvSignUpDisabled': undefined;
+  'TelesrvCodeLoginDisabled': undefined;
+  'TelesrvNoLoginPasswordContactAdmin': undefined;
+  'AuthPasswordSignInDesc': undefined;
 }
 
 export interface LangPairWithVariables<V = LangVariable> {
@@ -5650,6 +5684,9 @@ export interface LangPairWithVariables<V = LangVariable> {
   'PeerPickerUnknownPeer': {
     'id': V;
   };
+  'TelesrvLoginPasswordFailedError': {
+    'error': V;
+  };
 }
 
 export interface LangPairPlural {
@@ -6809,7 +6846,8 @@ export interface LangKeyGroups {
   };
   'error': {
     keys:
-      | 'ErrorUnexpectedMessage';
+      | 'ErrorUnexpectedMessage'
+      | 'TelesrvLoginPasswordFailedError';
     variables: 'error';
   };
   'count': {

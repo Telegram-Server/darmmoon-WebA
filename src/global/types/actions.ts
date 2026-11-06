@@ -122,6 +122,7 @@ import type {
   StarGiftInfo,
   StarsTransactionType,
   StoryViewerOrigin,
+  TelesrvLoginPasswordMode,
   ThemeKey,
   ThreadId,
   TranslationTone,
@@ -174,6 +175,10 @@ export interface ActionPayloads {
     tabId?: number;
   };
   goToAuthQrCode: undefined;
+  goToAuthPhoneNumber: { isPasswordLogin: boolean };
+  returnToAuthGuestPage: undefined;
+  signInAsGuest: undefined;
+  closeGuestPasswordReminder: WithTabId | undefined;
   loginWithPasskey: undefined;
 
   // stickers & GIFs
@@ -255,6 +260,15 @@ export interface ActionPayloads {
     currentPassword: string;
     onSuccess: VoidFunction;
   };
+  loadTelesrvLoginPassword: {
+    shouldReportErrors?: boolean;
+  } & WithTabId | undefined;
+  updateTelesrvLoginPassword: {
+    mode: TelesrvLoginPasswordMode;
+    currentPassword?: string;
+    newPassword?: string;
+  } & WithTabId;
+  clearTelesrvLoginPasswordError: undefined;
   loadBlockedUsers: {
     isOnlyStories?: boolean;
   } | undefined;

@@ -78,12 +78,12 @@ const AuthSignupPassword = ({
       />
       <div className="auth-form">
         <MonkeyPassword isPasswordVisible={isPasswordVisible} />
-        <h1>{lang('AuthSignupPasswordTitle')}</h1>
-        <p className="note">{lang('AuthSignupPasswordDesc')}</p>
+        <h1>{lang('TelesrvLoginPasswordSetTitle')}</h1>
+        <p className="note">{lang('TelesrvLoginPasswordSetInfo')}</p>
         <PasswordForm
           key={isRepeatStep ? 'repeat' : 'password'}
           error={error}
-          placeholder={lang(isRepeatStep ? 'AuthSignupPasswordRepeat' : 'AuthSignupPasswordField')}
+          placeholder={lang(isRepeatStep ? 'PleaseReEnterPassword' : 'TelesrvLoginPasswordNew')}
           submitLabel={lang('Next')}
           isLoading={isLoading}
           isPasswordVisible={isPasswordVisible}

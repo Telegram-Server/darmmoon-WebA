@@ -33,6 +33,8 @@ export interface ApiInitialArgs {
   accountIds?: string[];
   hasPasskeySupport?: boolean;
   deviceId?: string;
+  // The guest page is shown over the phone number wait, which needs no QR code token polling
+  shouldStartWithPhoneNumber?: boolean;
 }
 
 export type ApiPasskeyOption = {
@@ -395,6 +397,10 @@ export interface ApiAppConfig {
   aiComposeTonePromptLengthMax?: number;
   botAllowedSuffixes?: string[];
   isPasswordLoginAvailable?: boolean;
+  isGuestLoginAvailable?: boolean;
+  // The server turns code login off only while password login is on
+  isCodeLoginDisabled?: boolean;
+  isSignUpDisabled?: boolean;
   telesrvPermissions?: ApiTelesrvPermissions;
 }
 

@@ -81,7 +81,8 @@
 #auth-phone-number-form,
 #auth-code-form,
 #auth-password-form,
-#auth-qr-form {
+#auth-qr-form,
+#auth-guest-form {
   overflow-y: auto;
   height: 100%;
 }
@@ -133,6 +134,17 @@
 
 .auth-button.text + .auth-button.text {
   margin-top: 0;
+}
+
+.auth-guest-error {
+  margin: 1rem 0 0;
+  font-size: 0.875rem;
+  line-height: 1.35;
+  color: var(--color-error);
+
+  & + .auth-button {
+    margin-top: 0.5rem;
+  }
 }
 
 #auth-qr-form {

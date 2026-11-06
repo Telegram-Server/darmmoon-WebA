@@ -39,12 +39,16 @@ const ERROR_KEYS: Record<string, RegularLangKey> = {
   CODE_INVALID: 'ErrorEmailCodeInvalid',
   PASSWORD_MISSING: 'ErrorPasswordMissing',
   PASSKEY_CREDENTIAL_NOT_FOUND: 'ErrorPasskeyUnknown',
-  PASSWORD_LOGIN_NOT_SET: 'ErrorPasswordLoginNotSet',
-  PASSWORD_LOGIN_DISABLED: 'ErrorPasswordLoginUnavailable',
-  SIGN_UP_DISABLED: 'ErrorSignUpClosed',
+  PASSWORD_LOGIN_NOT_SET: 'TelesrvNoLoginPasswordText',
+  PASSWORD_LOGIN_DISABLED: 'TelesrvLoginPasswordDisabled',
+  SIGN_UP_DISABLED: 'TelesrvSignUpDisabled',
+  CODE_LOGIN_DISABLED: 'TelesrvCodeLoginDisabled',
   PHONE_NUMBER_OCCUPIED: 'ErrorSignupPasswordOccupied',
   AUTHORIZATIONS_TOO_MUCH: 'ErrorDeviceLimitReached',
   DEVICE_ID_REQUIRED: 'ErrorDeviceIdRequired',
+  GUEST_LOGIN_DISABLED: 'TelesrvGuestDisabled',
+  GUEST_IP_UNAVAILABLE: 'TelesrvGuestIpUnavailable',
+  GUEST_NUMBER_POOL_EXHAUSTED: 'TelesrvGuestPoolExhausted',
 };
 
 function resolveErrorKey(errorMessage: string) {

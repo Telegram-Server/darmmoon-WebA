@@ -226,6 +226,14 @@ addActionHandler('toggleAuthPasswordLogin', (global): ActionReturnType => {
   });
 });
 
+addActionHandler('closeGuestPasswordReminder', (global, actions, payload): ActionReturnType => {
+  const { tabId = getCurrentTabId() } = payload || {};
+
+  return updateTabState(global, {
+    isGuestPasswordReminderPending: undefined,
+  }, tabId);
+});
+
 addActionHandler('clearAuthErrorKey', (global): ActionReturnType => {
   return updateAuth(global, {
     errorKey: undefined,

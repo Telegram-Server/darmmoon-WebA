@@ -254,7 +254,27 @@ function LeftColumn({
         case SettingsScreens.PasscodeEnabled:
         case SettingsScreens.PasscodeCongratulations:
         case SettingsScreens.Passkeys:
+        case SettingsScreens.TelesrvLoginPassword:
           openSettingsScreen({ screen: SettingsScreens.Privacy });
+          return;
+
+        case SettingsScreens.TelesrvLoginPasswordSetConfirm:
+        case SettingsScreens.TelesrvLoginPasswordChangeCurrent:
+        case SettingsScreens.TelesrvLoginPasswordRemove:
+        case SettingsScreens.TelesrvLoginPasswordResetNew:
+          openSettingsScreen({ screen: SettingsScreens.TelesrvLoginPassword });
+          return;
+
+        case SettingsScreens.TelesrvLoginPasswordChangeNew:
+          openSettingsScreen({ screen: SettingsScreens.TelesrvLoginPasswordChangeCurrent });
+          return;
+
+        case SettingsScreens.TelesrvLoginPasswordChangeConfirm:
+          openSettingsScreen({ screen: SettingsScreens.TelesrvLoginPasswordChangeNew });
+          return;
+
+        case SettingsScreens.TelesrvLoginPasswordResetConfirm:
+          openSettingsScreen({ screen: SettingsScreens.TelesrvLoginPasswordResetNew });
           return;
 
         case SettingsScreens.PasscodeNewPasscode:

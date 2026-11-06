@@ -216,6 +216,7 @@ export type TabState = {
   isBlurred?: boolean;
   isMasterTab: boolean;
   inactiveReason?: 'auth' | 'otherClient';
+  isGuestPasswordReminderPending?: boolean;
   shouldPreventComposerAnimation?: boolean;
   isRichInputExpanded?: boolean;
   richMediaUploadBlockingCount?: number;

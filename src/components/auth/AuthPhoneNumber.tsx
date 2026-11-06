@@ -7,6 +7,7 @@ import type { ApiCountryCode } from '../../api/types';
 import type { GlobalState } from '../../global/types';
 
 import { requestMeasure } from '../../lib/fasterdom/fasterdom';
+import { selectIsTelesrvCodeLoginDisabled } from '../../global/selectors';
 import { IS_SAFARI, IS_TOUCH_ENV } from '../../util/browser/windowEnvironment';
 import { preloadImage } from '../../util/files';
 import preloadFonts from '../../util/fonts';
@@ -16,6 +17,7 @@ import { formatPhoneNumber, getCountryCodeByIso, getCountryFromPhoneNumber } fro
 import { navigateBack } from './helpers/backNavigation';
 import { getSuggestedLanguage } from './helpers/getSuggestedLanguage';
 
+import useEffectWithPrevDeps from '../../hooks/useEffectWithPrevDeps';
 import useFlag from '../../hooks/useFlag';
 import useLang from '../../hooks/useLang';
 import useLangString from '../../hooks/useLangString';
@@ -37,6 +39,8 @@ type StateProps = {
   phoneCodeList: ApiCountryCode[];
   isTestServer?: boolean;
   isPasswordLoginAvailable?: boolean;
+  isCodeLoginDisabled?: boolean;
+  isSignUpDisabled?: boolean;
 };
 
 const MIN_NUMBER_LENGTH = 7;
@@ -50,6 +54,8 @@ const AuthPhoneNumber = ({
   language,
   isTestServer,
   isPasswordLoginAvailable,
+  isCodeLoginDisabled,
+  isSignUpDisabled,
 }: StateProps) => {
   const {
     setAuthPhoneNumber,
@@ -60,8 +66,8 @@ const AuthPhoneNumber = ({
     goToAuthQrCode,
     setSharedSettingOption,
     loginWithPasskey,
-    loadAppConfig,
     toggleAuthPasswordLogin,
+    returnToAuthGuestPage,
   } = getActions();
 
   const {
@@ -74,6 +80,7 @@ const AuthPhoneNumber = ({
     isLoadingQrCode,
     passkeyOption,
     isPasswordLogin: isPasswordLoginSelected,
+    isGuestPageFirst,
   } = auth;
 
   const lang = useLang();
@@ -81,7 +88,7 @@ const AuthPhoneNumber = ({
   const suggestedLanguage = getSuggestedLanguage();
 
   const isConnected = connectionState === 'connectionStateReady';
-  const isPasswordLogin = isPasswordLoginSelected && isPasswordLoginAvailable;
+  const isPasswordLogin = Boolean(isPasswordLoginAvailable && (isPasswordLoginSelected || isCodeLoginDisabled));
   const continueText = useLangString('AuthContinueOnThisLanguage', suggestedLanguage);
   const [country, setCountry] = useState<ApiCountryCode | undefined>();
   const [phoneNumber, setPhoneNumber] = useState<string | undefined>();
@@ -121,12 +128,12 @@ const AuthPhoneNumber = ({
     }
   }, [isConnected, lang.code]);
 
-  // The app config tells whether the server offers password login
-  useEffect(() => {
-    if (isConnected) {
-      loadAppConfig();
+  // Guest login turned on since the cached hint: the guest page replaces the page unless a number is typed
+  useEffectWithPrevDeps(([prevIsGuestPageFirst]) => {
+    if (prevIsGuestPageFirst === false && isGuestPageFirst && !phoneNumber) {
+      returnToAuthGuestPage();
     }
-  }, [isConnected]);
+  }, [isGuestPageFirst, phoneNumber]);
 
   useEffect(() => {
     if (nearestCountry && phoneCodeList && !country && !isTouched) {
@@ -188,6 +195,10 @@ const AuthPhoneNumber = ({
 
   const handleBackNavigation = useLastCallback(() => {
     navigateBack();
+  });
+
+  const handleReturnToGuestPage = useLastCallback(() => {
+    returnToAuthGuestPage();
   });
 
   const handleCountryChange = useLastCallback((value: ApiCountryCode) => {
@@ -262,7 +273,18 @@ const AuthPhoneNumber = ({
 
   return (
     <div id="auth-phone-number-form" className="custom-scroll">
-      {hasActiveAccount && (
+      {isGuestPageFirst && (
+        <Button
+          size="smaller"
+          round
+          color="translucent"
+          className="auth-close"
+          iconName="arrow-left"
+          ariaLabel={lang('Back')}
+          onClick={handleReturnToGuestPage}
+        />
+      )}
+      {!isGuestPageFirst && hasActiveAccount && (
         <Button
           size="smaller"
           round
@@ -275,7 +297,9 @@ const AuthPhoneNumber = ({
       <div className="auth-form">
         <div id="logo" />
         <h1>{lang('AuthTitle')}</h1>
-        <p className="note">{lang(isPasswordLogin ? 'AuthPasswordLoginDesc' : 'StartText')}</p>
+        <p className="note">
+          {lang(!isPasswordLogin ? 'StartText' : isSignUpDisabled ? 'AuthPasswordSignInDesc' : 'AuthPasswordLoginDesc')}
+        </p>
         <form className="form" action="" onSubmit={handleSubmit}>
           <CountryCodeInput
             id="sign-in-phone-code"
@@ -324,9 +348,9 @@ const AuthPhoneNumber = ({
               {lang('LoginQRLogin')}
             </Button>
           )}
-          {isAuthReady && isPasswordLoginAvailable && (
+          {isAuthReady && isPasswordLoginAvailable && !isCodeLoginDisabled && (
             <Button className="auth-button" isText onClick={handleTogglePasswordLogin}>
-              {lang(isPasswordLogin ? 'AuthLoginWithCode' : 'AuthLoginWithPassword')}
+              {lang(isPasswordLogin ? 'TelesrvGuestUseCode' : 'TelesrvGuestUsePassword')}
             </Button>
           )}
           {passkeyOption && (
@@ -368,6 +392,8 @@ export default memo(withGlobal(
       phoneCodeList,
       isTestServer: config?.isTestServer,
       isPasswordLoginAvailable: appConfig.isPasswordLoginAvailable,
+      isCodeLoginDisabled: selectIsTelesrvCodeLoginDisabled(global),
+      isSignUpDisabled: appConfig.isSignUpDisabled,
     };
   },
 )(AuthPhoneNumber));

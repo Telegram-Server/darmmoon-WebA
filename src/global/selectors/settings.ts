@@ -48,6 +48,8 @@ export function selectAvailableSettingsScreen<T extends GlobalState>(global: T, 
       if (hasPassword === undefined) return undefined;
       return hasPassword ? SettingsScreens.TwoFaEnabled : SettingsScreens.TwoFaDisabled;
     }
+    case SettingsScreens.TelesrvLoginPassword:
+      return global.appConfig.isPasswordLoginAvailable ? screen : undefined;
     case SettingsScreens.ActiveWebsites:
       return global.activeWebSessions.orderedHashes.length ? screen : undefined;
     case SettingsScreens.AutoDeleteMessages:
@@ -86,6 +88,8 @@ export function selectSettingsSearchFlags<T extends GlobalState>(global: T) {
     hasWebSessions: global.activeWebSessions.orderedHashes.length > 0,
     arePasskeysAvailable: appConfig.arePasskeysAvailable,
     hasPasskeys: Boolean(appConfig.arePasskeysAvailable && passkeys?.length),
+    isPasswordLoginAvailable: Boolean(appConfig.isPasswordLoginAvailable),
+    hasTelesrvLoginPassword: Boolean(appConfig.isPasswordLoginAvailable && global.telesrvLoginPassword.hasPassword),
     canSetAutoDelete: selectAvailableSettingsScreen(global, SettingsScreens.AutoDeleteMessages) !== undefined,
     canChangeSensitive,
     canDisplayAutoarchiveSetting: Boolean(appConfig.canDisplayAutoarchiveSetting || isPremium),

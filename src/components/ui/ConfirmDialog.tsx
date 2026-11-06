@@ -19,6 +19,7 @@ type OwnProps = {
   textParts?: TextPart;
   text?: string;
   confirmLabel?: TeactNode;
+  cancelLabel?: TeactNode;
   confirmIsDestructive?: boolean;
   isConfirmDisabled?: boolean;
   isConfirmLoading?: boolean;
@@ -39,6 +40,7 @@ const ConfirmDialog: FC<OwnProps> = ({
   text,
   textParts,
   confirmLabel,
+  cancelLabel,
   confirmIsDestructive,
   isConfirmDisabled,
   isConfirmLoading,
@@ -97,7 +99,7 @@ const ConfirmDialog: FC<OwnProps> = ({
         </Button>
         {!isOnlyConfirm && (
           <Button className="confirm-dialog-button" isText onClick={onClose} autoFocus={confirmIsDestructive}>
-            {lang('Cancel')}
+            {cancelLabel || lang('Cancel')}
           </Button>
         )}
       </div>

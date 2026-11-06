@@ -13,6 +13,7 @@ import useHistoryBack from '../../hooks/useHistoryBack';
 
 import Transition from '../ui/Transition';
 import AuthCode from './AuthCode.async';
+import AuthGuest from './AuthGuest';
 import AuthLoginPassword from './AuthLoginPassword.async';
 import AuthPassword from './AuthPassword.async';
 import AuthPhoneNumber from './AuthPhoneNumber';
@@ -22,15 +23,21 @@ import AuthSignupPassword from './AuthSignupPassword.async';
 
 import './Auth.scss';
 
+const GUEST_PAGE_KEY = 7;
+
 type StateProps = {
   authState: GlobalState['auth']['state'];
+  isGuestPageFirst?: boolean;
+  isGuestPage?: boolean;
 };
 
 const Auth = ({
   authState,
+  isGuestPageFirst,
+  isGuestPage,
 }: StateProps) => {
   const {
-    returnToAuthPhoneNumber, goToAuthQrCode,
+    returnToAuthPhoneNumber, goToAuthQrCode, returnToAuthGuestPage,
   } = getActions();
 
   const isMobile = PLATFORM_ENV === 'iOS' || PLATFORM_ENV === 'Android';
@@ -43,10 +50,19 @@ const Auth = ({
     }
   };
 
+  const handleReturnToGuestPage = () => {
+    returnToAuthGuestPage();
+  };
+
+  const isWaitingForMethod = authState === 'authorizationStateWaitPhoneNumber'
+    || authState === 'authorizationStateWaitQrCode';
+
+  const isDefaultPageBackActive = (!isMobile && authState === 'authorizationStateWaitPhoneNumber')
+    || (isMobile && authState === 'authorizationStateWaitQrCode');
+
   useHistoryBack({
-    isActive: (!isMobile && authState === 'authorizationStateWaitPhoneNumber')
-      || (isMobile && authState === 'authorizationStateWaitQrCode'),
-    onBack: handleChangeAuthorizationMethod,
+    isActive: isGuestPageFirst ? !isGuestPage && isWaitingForMethod : isDefaultPageBackActive,
+    onBack: isGuestPageFirst ? handleReturnToGuestPage : handleChangeAuthorizationMethod,
   });
 
   // For animation purposes
@@ -54,8 +70,19 @@ const Auth = ({
     authState !== 'authorizationStateReady' ? authState : undefined,
     true,
   );
+  const renderingIsGuestPage = useCurrentOrPrev(
+    authState !== 'authorizationStateReady' ? isGuestPage : undefined,
+    true,
+  );
+  // The guest page waits for the phone number, or is shown optimistically before the flow starts
+  const isGuestPageShown = renderingIsGuestPage && (
+    !renderingAuthState || renderingAuthState === 'authorizationStateWaitPhoneNumber'
+    || renderingAuthState === 'authorizationStateWaitQrCode'
+  );
 
   function getScreen() {
+    if (isGuestPageShown) return <AuthGuest />;
+
     switch (renderingAuthState) {
       case 'authorizationStateWaitCode':
         return <AuthCode />;
@@ -77,6 +104,8 @@ const Auth = ({
   }
 
   function getActiveKey() {
+    if (isGuestPageShown) return GUEST_PAGE_KEY;
+
     switch (renderingAuthState) {
       case 'authorizationStateWaitCode':
         return 0;
@@ -111,8 +140,12 @@ const Auth = ({
 
 export default memo(withGlobal(
   (global): Complete<StateProps> => {
+    const { state, isGuestPageFirst, isGuestPage } = global.auth;
+
     return {
-      authState: global.auth.state,
+      authState: state,
+      isGuestPageFirst,
+      isGuestPage,
     };
   },
 )(Auth));

@@ -48,9 +48,12 @@ const AuthCode = ({
     returnToAuthPhoneNumber,
     setSharedSettingOption,
     loginWithPasskey,
+    returnToAuthGuestPage,
   } = getActions();
 
-  const { state, qrCode: authQrCode, passkeyOption } = auth;
+  const {
+    state, qrCode: authQrCode, passkeyOption, isGuestPageFirst,
+  } = auth;
 
   const suggestedLanguage = getSuggestedLanguage();
   const lang = useLang();
@@ -111,6 +114,10 @@ const AuthCode = ({
     navigateBack();
   });
 
+  const handleReturnToGuestPage = useLastCallback(() => {
+    returnToAuthGuestPage();
+  });
+
   const handleLangChange = useLastCallback(async () => {
     markIsLoading();
 
@@ -135,7 +142,18 @@ const AuthCode = ({
 
   return (
     <div id="auth-qr-form" className="custom-scroll">
-      {hasActiveAccount && (
+      {isGuestPageFirst && (
+        <Button
+          size="smaller"
+          round
+          color="translucent"
+          className="auth-close"
+          iconName="arrow-left"
+          ariaLabel={lang('Back')}
+          onClick={handleReturnToGuestPage}
+        />
+      )}
+      {!isGuestPageFirst && hasActiveAccount && (
         <Button
           size="smaller"
           round

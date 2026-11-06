@@ -10,6 +10,7 @@ import { getServerTime } from '../../../util/serverTime';
 import { DEFAULT_PRIMITIVES } from '../../../api/gramjs/gramjsBuilders';
 import { buildInputPasskeyCredential } from '../../../api/gramjs/gramjsBuilders/passkeys';
 import {
+  GuestLoginRequestedError,
   PasskeyCredentialNotFoundError,
   PasskeyLoginRequestedError,
   PasswordLoginRequestedError,
@@ -58,8 +59,10 @@ const NEW_PASSWORD_SALT_LENGTH = 32;
 const LOGIN_PASSWORD_CHALLENGE_ERRORS = new Set(['SRP_ID_INVALID', 'SRP_PASSWORD_CHANGED', 'AUTH_KEY_PERM_EMPTY']);
 // On these errors the login password flow returns to the phone number screen
 const LOGIN_PASSWORD_EXIT_ERRORS = new Set([
-  'PASSWORD_LOGIN_NOT_SET', 'PASSWORD_LOGIN_DISABLED', 'PHONE_NUMBER_INVALID',
+  'PASSWORD_LOGIN_NOT_SET', 'PASSWORD_LOGIN_DISABLED', 'PHONE_NUMBER_INVALID', 'SIGN_UP_DISABLED',
 ]);
+// The server switches login codes or sign-up off while a code is pending, so the flow restarts from the phone number
+const CODE_LOGIN_EXIT_ERRORS = new Set(['CODE_LOGIN_DISABLED', 'SIGN_UP_DISABLED']);
 const DEVICE_BINDING_ERRORS = new Set(['AUTHORIZATIONS_TOO_MUCH', 'DEVICE_ID_REQUIRED']);
 let lastUsedMethod: AuthMethod = DEFAULT_INITIAL_METHOD;
 
@@ -188,6 +191,10 @@ async function signInUser(
             return await signInUserWithLoginPassword(client, apiCredentials, authParams, err.phoneNumber);
           }
 
+          if (err instanceof GuestLoginRequestedError) {
+            return await signInUserAsGuest(client, apiCredentials, authParams);
+          }
+
           throw err;
         }
       } else {
@@ -251,6 +258,9 @@ async function signInUser(
         return signInWithPassword(client, apiCredentials, authParams);
       } else if (err instanceof Error) {
         authParams.onError(err);
+        if (err instanceof RPCError && CODE_LOGIN_EXIT_ERRORS.has(err.errorMessage)) {
+          return signInUser(client, apiCredentials, authParams);
+        }
       } else {
         // eslint-disable-next-line no-console
         console.warn('Unexpected error:', err);
@@ -282,6 +292,9 @@ async function signInUser(
         return user;
       } catch (err: any) {
         authParams.onError(err);
+        if (err instanceof RPCError && CODE_LOGIN_EXIT_ERRORS.has(err.errorMessage)) {
+          return signInUser(client, apiCredentials, authParams);
+        }
       }
     }
   }
@@ -344,6 +357,10 @@ async function signInUserWithQrCode(
 
     if (err instanceof PasskeyLoginRequestedError) {
       return await signInUserWithPasskey(client, apiCredentials, authParams, err.credentialJson);
+    }
+
+    if (err instanceof GuestLoginRequestedError) {
+      return await signInUserAsGuest(client, apiCredentials, authParams);
     }
 
     // A new token would fail the same way, so the phone number login is offered instead
@@ -616,7 +633,12 @@ async function signUpWithLoginPassword(
       continue;
     }
 
-    const user = await signUpWithNames(client, authParams, phoneNumber, newSettings);
+    let user: Api.TypeUser | undefined;
+    try {
+      user = await signUpWithNames(client, authParams, phoneNumber, newSettings);
+    } catch (err: unknown) {
+      return signInUser(client, apiCredentials, authParams);
+    }
     if (user) return user;
   }
 
@@ -660,10 +682,40 @@ async function signUpWithNames(
       if (err instanceof Error) {
         authParams.onError(err);
       }
+
+      // Sign-up or password login is closed meanwhile, so retrying with other names cannot help
+      if (err instanceof RPCError && LOGIN_PASSWORD_EXIT_ERRORS.has(err.errorMessage)) {
+        throw err;
+      }
     }
   }
 
   return undefined; // Never reached (TypeScript fix)
+}
+
+// On failure the flow returns to the phone number wait, which the guest page is shown over, so the user can retry
+async function signInUserAsGuest(
+  client: TelegramClient, apiCredentials: ApiCredentials, authParams: UserAuthParams,
+): Promise<Api.TypeUser> {
+  try {
+    const result = await client.invoke(new Api.telesrv.SignUpAsGuest({}));
+    if (!(result instanceof Api.auth.Authorization)) {
+      throw new Error('Unexpected sign up in guest login');
+    }
+
+    return result.user;
+  } catch (err: unknown) {
+    // A reused guest account can have two-step verification turned on
+    if (err instanceof RPCError && err.errorMessage === 'SESSION_PASSWORD_NEEDED') {
+      return signInWithPassword(client, apiCredentials, authParams);
+    }
+
+    if (err instanceof Error) {
+      authParams.onError(err);
+    }
+
+    return signInUser(client, apiCredentials, authParams);
+  }
 }
 
 function isDeviceBindingError(err: unknown): err is RPCError {

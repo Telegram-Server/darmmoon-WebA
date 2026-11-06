@@ -7,7 +7,7 @@ export {
 
 export {
   provideAuthPhoneNumber, provideAuthCode, provideAuthPassword, provideAuthRegistration, restartAuth, restartAuthWithQr,
-  restartAuthWithPasskey, restartAuthWithCode,
+  restartAuthWithPasskey, restartAuthWithCode, restartAuthAsGuest,
 } from './auth';
 
 export {

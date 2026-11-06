@@ -155,6 +155,9 @@ export interface GramJsAppConfig extends LimitsConfig {
   aicompose_tone_prompt_length_max?: number;
   bot_allowed_suffixes?: string[];
   telesrv_features?: string[];
+  telesrv_guest_login_enabled?: boolean;
+  telesrv_code_login_disabled?: boolean;
+  telesrv_sign_up_disabled?: boolean;
   telesrv_permissions?: Record<string, boolean | {
     enabled?: boolean;
     user_ids?: number[];
@@ -364,6 +367,9 @@ export function buildAppConfig(json: GramJs.TypeJSONValue, hash: number): ApiApp
     aiComposeTonePromptLengthMax: appConfig.aicompose_tone_prompt_length_max,
     botAllowedSuffixes: appConfig.bot_allowed_suffixes,
     isPasswordLoginAvailable: appConfig.telesrv_features?.includes('password_login'),
+    isGuestLoginAvailable: appConfig.telesrv_guest_login_enabled,
+    isCodeLoginDisabled: appConfig.telesrv_code_login_disabled,
+    isSignUpDisabled: appConfig.telesrv_sign_up_disabled,
     telesrvPermissions: buildTelesrvPermissions(appConfig.telesrv_permissions),
   };
 

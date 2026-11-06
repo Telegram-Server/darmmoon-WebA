@@ -136,6 +136,13 @@ export class PasswordLoginRequestedError extends Error {
   }
 }
 
+export class GuestLoginRequestedError extends Error {
+  constructor() {
+    super('Guest login requested');
+    this.message = 'RESTART_AUTH_AS_GUEST';
+  }
+}
+
 export class UserAlreadyAuthorizedError extends Error {
   public userId: string;
   constructor(userId: string) {
